@@ -2944,9 +2944,13 @@
       });
     });
     if (!min || !max) return [];
+    // Sanidade: um typo na data de um voo (ex: ano digitado errado) não pode
+    // travar o app tentando gerar centenas de milhares de dias.
+    const MAX_TRIP_DAYS = 180;
+    if ((max - min) / 86400000 > MAX_TRIP_DAYS) return [];
     const days = [];
     const cur = new Date(min);
-    while (cur <= max) {
+    while (cur <= max && days.length < MAX_TRIP_DAYS) {
       days.push(localDateStr(cur));
       cur.setDate(cur.getDate() + 1);
     }
