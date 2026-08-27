@@ -30,6 +30,7 @@
     --accent: #ff7a3d;
     --accent2: #0f9b8e;
     --danger: #e0455f;
+    --good: #2ea043;
     --text: #212a3d;
     --muted: #6b7385;
     --border: #e3e7f1;
@@ -62,6 +63,7 @@
       --accent: #ff8a52;
       --accent2: #17b8a8;
       --danger: #ff6b81;
+      --good: #3fb950;
       --text: #e9ecf5;
       --muted: #9099b3;
       --border: #333849;
@@ -924,6 +926,16 @@
   .breakdown-bar .fill { height: 100%; background: var(--accent); }
   .breakdown-bar .fill.alt { background: var(--accent2); }
 
+  .daily-budget-row { border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px; margin-bottom: 10px; background: var(--card2); }
+  .daily-budget-row:last-child { margin-bottom: 0; }
+  .daily-budget-row.today { border-color: var(--accent2); }
+  .daily-budget-row .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: var(--fs-sm); margin-bottom: 6px; }
+  .daily-budget-row .top .day-label { color: var(--text); font-weight: 700; }
+  .daily-budget-row .top .day-label .today-tag { color: var(--accent2); font-weight: 800; }
+  .daily-budget-row .top .amt { color: var(--muted); font-weight: 700; flex: none; }
+  .daily-budget-row .progress-bar { margin-top: 0; }
+  .daily-budget-row .cap-field { max-width: 220px; margin-top: 8px; }
+
   /* Responsive: collapse sidebar to a top bar on small screens */
   /* ---------------- Barra de abas fixa (navegação nativa no mobile) ---------------- */
   .bottom-tabbar {
@@ -1401,11 +1413,21 @@
       <div class="hint" id="budget-other-currencies" style="margin-top:2px; display:none;"></div>
     </div>
 
+    <div class="card" id="daily-budget-card">
+      <h3>🎯 Teto diário de gastos</h3>
+      <p class="hint" id="daily-budget-hint" style="margin:0 0 10px;">Cadastre as datas de partida e chegada dos voos (aba Voos) para habilitar o controle de teto por dia da viagem.</p>
+      <div id="daily-budget-list"></div>
+    </div>
+
     <div class="card">
       <h3>💵 Lançar gasto</h3>
       <div class="field">
         <label class="field-label">Viajante</label>
         <select id="expense-traveler"></select>
+      </div>
+      <div class="field" id="expense-day-field" style="display:none;">
+        <label class="field-label">Dia da viagem</label>
+        <select id="expense-day"></select>
       </div>
       <div class="field-row">
         <div class="field">
@@ -1710,7 +1732,8 @@
     budgetTotal: null,
     budgetCurrency: 'USD',
     fxForeignCurrency: 'USD',
-    expenses: [] // { traveler, category, amount, desc, date }
+    expenses: [], // { traveler, category, amount, desc, date, tripDate }
+    dailyBudgets: {} // { 'YYYY-MM-DD': tetoNaBudgetCurrency }
   };
 
   // Ponto de partida de qualquer viagem nova (seu amigo, ou você mesmo ao
@@ -1732,7 +1755,8 @@
     budgetTotal: null,
     budgetCurrency: 'USD',
     fxForeignCurrency: 'USD',
-    expenses: []
+    expenses: [],
+    dailyBudgets: {}
   };
 
   let state = loadState();
@@ -1758,6 +1782,15 @@
     // Gastos lançados antes de existir moeda por item herdam a moeda global
     // da época (não tinham outra opção quando foram criados).
     s.expenses.forEach(e => { if (!e.currency) e.currency = s.budgetCurrency; });
+    s.dailyBudgets = s.dailyBudgets && typeof s.dailyBudgets === 'object' ? s.dailyBudgets : {};
+    // Gastos lançados antes de existir o campo "dia da viagem" herdam a data
+    // (local, não UTC) do momento em que foram lançados.
+    s.expenses.forEach(e => {
+      if (!e.tripDate) {
+        const d = e.date ? new Date(e.date) : new Date();
+        e.tripDate = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      }
+    });
     s.checklists = s.checklists && typeof s.checklists === 'object' ? s.checklists : {};
     s.attachments = s.attachments && typeof s.attachments === 'object' ? s.attachments : {};
     if (!s.activeChecklistTraveler || !s.travelers.includes(s.activeChecklistTraveler)) s.activeChecklistTraveler = s.travelers[0];
@@ -1871,8 +1904,10 @@
     fxCurrencySelect.value = state.fxForeignCurrency;
     fxForeignLabelEl.textContent = 'Valor em ' + fxCurrencySelect.value;
     updateBudgetLabels();
+    renderExpenseDayOptions();
     renderExpenses();
     renderBudgetSummary();
+    renderDailyBudgets();
   }
 
   // ---------- Login obrigatório + lista global de clientes autorizados ----------
@@ -2888,6 +2923,36 @@
     return dd + '/' + mm + (timeStr ? ' ' + timeStr : '');
   }
 
+  function localDateStr(d) {
+    d = d || new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  // Dias da viagem (pro teto diário de gastos): do embarque do primeiro voo
+  // ao pouso do último, inferidos das datas estruturadas dos voos — o
+  // roteiro não serve pra isso porque guarda a data como texto livre
+  // ("25/11", sem ano).
+  function getTripDays() {
+    let min = null, max = null;
+    state.voos.forEach(v => {
+      [v.origemData, v.destinoData].forEach(ds => {
+        if (!ds) return;
+        const d = new Date(ds + 'T00:00:00');
+        if (isNaN(d)) return;
+        if (!min || d < min) min = d;
+        if (!max || d > max) max = d;
+      });
+    });
+    if (!min || !max) return [];
+    const days = [];
+    const cur = new Date(min);
+    while (cur <= max) {
+      days.push(localDateStr(cur));
+      cur.setDate(cur.getDate() + 1);
+    }
+    return days;
+  }
+
   function updateTripAlerts() {
     const el = document.getElementById('trip-alert-badge');
     if (!el) return;
@@ -3137,6 +3202,10 @@
           voo[inputEl.dataset.field] = inputEl.value;
           saveState();
           if (inputEl.dataset.field === 'origemData' || inputEl.dataset.field === 'origemHora') updateTripAlerts();
+          if (inputEl.dataset.field === 'origemData' || inputEl.dataset.field === 'destinoData') {
+            renderDailyBudgets();
+            renderExpenseDayOptions();
+          }
         });
       });
       card.querySelector('[data-action="del-voo"]').addEventListener('click', async () => {
@@ -3147,6 +3216,8 @@
           state.voos.splice(idx, 1);
           saveState();
           renderVoos();
+          renderDailyBudgets();
+          renderExpenseDayOptions();
         }
       });
       setupAttachZone(voo.id, card.querySelector('.attach-zone'), '+ Anexar cartão de embarque', 'Nenhum cartão de embarque anexado ainda.');
@@ -3225,6 +3296,8 @@
         });
         saveState();
         renderVoos();
+        renderDailyBudgets();
+        renderExpenseDayOptions();
         closeBoardingPassScanner();
       });
     } catch (e) {
@@ -3777,6 +3850,10 @@
   const expenseBreakdownCardEl = document.getElementById('expense-breakdown-card');
   const expenseBreakdownBodyEl = document.getElementById('expense-breakdown-body');
   const budgetOtherCurrenciesEl = document.getElementById('budget-other-currencies');
+  const expenseDayFieldEl = document.getElementById('expense-day-field');
+  const expenseDaySelect = document.getElementById('expense-day');
+  const dailyBudgetHintEl = document.getElementById('daily-budget-hint');
+  const dailyBudgetListEl = document.getElementById('daily-budget-list');
 
   populateCurrencySelect(budgetCurrencySelect, state.budgetCurrency);
   populateCurrencySelect(expenseCurrencySelect, state.budgetCurrency);
@@ -3802,6 +3879,7 @@
     populateCurrencySelect(expenseCurrencySelect, state.budgetCurrency);
     renderBudgetSummary();
     renderExpenses();
+    renderDailyBudgets();
   });
 
   // ---------- Conversor de moeda (cotação automática) ----------
@@ -3867,6 +3945,109 @@
       opt.value = name;
       opt.textContent = name;
       expenseTravelerSelect.appendChild(opt);
+    });
+  }
+
+  // Só existe uma lista de "dias da viagem" pra escolher quando dá pra
+  // calculá-la a partir das datas dos voos (ver getTripDays) — sem voo
+  // cadastrado, o campo fica oculto e o gasto cai no dia real do lançamento.
+  function renderExpenseDayOptions() {
+    const tripDays = getTripDays();
+    if (!tripDays.length) {
+      expenseDayFieldEl.style.display = 'none';
+      return;
+    }
+    expenseDayFieldEl.style.display = '';
+    const today = localDateStr();
+    const prevValue = expenseDaySelect.value;
+    expenseDaySelect.innerHTML = '';
+    tripDays.forEach((date, idx) => {
+      const d = new Date(date + 'T00:00:00');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const opt = document.createElement('option');
+      opt.value = date;
+      opt.textContent = 'Dia ' + (idx + 1) + ' · ' + dd + '/' + mm + (date === today ? ' (hoje)' : '');
+      expenseDaySelect.appendChild(opt);
+    });
+    if (tripDays.includes(prevValue)) expenseDaySelect.value = prevValue;
+    else if (tripDays.includes(today)) expenseDaySelect.value = today;
+    else expenseDaySelect.value = tripDays[0];
+  }
+
+  // Soma os gastos por dia da viagem e moeda — mesma lógica de nunca
+  // converter moeda (ver expenseTotalsByCurrency) aplicada por dia.
+  function dailyExpenseTotals() {
+    const totals = {};
+    state.expenses.forEach(e => {
+      if (!e.tripDate) return;
+      const cur = e.currency || state.budgetCurrency;
+      if (!totals[e.tripDate]) totals[e.tripDate] = {};
+      totals[e.tripDate][cur] = (totals[e.tripDate][cur] || 0) + (parseFloat(e.amount) || 0);
+    });
+    return totals;
+  }
+
+  function renderDailyBudgets() {
+    const tripDays = getTripDays();
+    if (!tripDays.length) {
+      dailyBudgetHintEl.style.display = 'block';
+      dailyBudgetListEl.innerHTML = '';
+      return;
+    }
+    dailyBudgetHintEl.style.display = 'none';
+    const totals = dailyExpenseTotals();
+    const today = localDateStr();
+    dailyBudgetListEl.innerHTML = '';
+    tripDays.forEach((date, idx) => {
+      const cap = state.dailyBudgets[date] || 0;
+      const dayTotals = totals[date] || {};
+      const spent = dayTotals[state.budgetCurrency] || 0;
+      const d = new Date(date + 'T00:00:00');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const otherCurrencies = Object.keys(dayTotals).filter(c => c !== state.budgetCurrency);
+      const otherNote = otherCurrencies.length
+        ? '<div class="hint" style="margin:6px 0 0;">+ ' + otherCurrencies.map(c => fmtMoney(dayTotals[c], c)).join(' + ') + '</div>'
+        : '';
+
+      const row = document.createElement('div');
+      row.className = 'daily-budget-row' + (date === today ? ' today' : '');
+      row.innerHTML = `
+        <div class="top">
+          <span class="day-label">Dia ${idx + 1} · ${dd}/${mm}${date === today ? ' · <span class="today-tag">hoje</span>' : ''}</span>
+          <span class="amt">${fmtMoney(spent, state.budgetCurrency)}${cap > 0 ? ' / ' + fmtMoney(cap, state.budgetCurrency) : ''}</span>
+        </div>
+        <div class="progress-bar"><div class="fill" style="width:0%"></div></div>
+        ${otherNote}
+        <div class="field cap-field">
+          <label class="field-label">Teto do dia (${state.budgetCurrency})</label>
+          <input type="number" step="0.01" min="0" placeholder="Ex: 300" class="daily-cap-input" value="${cap > 0 ? cap : ''}">
+        </div>
+      `;
+
+      const fillEl = row.querySelector('.progress-bar .fill');
+      const amtEl = row.querySelector('.top .amt');
+      function paint(capVal) {
+        const pct = capVal > 0 ? (spent / capVal) * 100 : 0;
+        let color = 'var(--good)';
+        if (pct >= 100) color = 'var(--danger)';
+        else if (pct >= 75) color = 'var(--accent)';
+        fillEl.style.width = Math.min(100, pct) + '%';
+        fillEl.style.background = color;
+        amtEl.textContent = fmtMoney(spent, state.budgetCurrency) + (capVal > 0 ? ' / ' + fmtMoney(capVal, state.budgetCurrency) : '');
+      }
+      paint(cap);
+
+      row.querySelector('.daily-cap-input').addEventListener('input', (ev) => {
+        const val = parseFloat(ev.target.value);
+        if (!val || val <= 0) delete state.dailyBudgets[date];
+        else state.dailyBudgets[date] = val;
+        saveState();
+        paint(state.dailyBudgets[date] || 0);
+      });
+
+      dailyBudgetListEl.appendChild(row);
     });
   }
 
@@ -3967,6 +4148,7 @@
         saveState();
         renderExpenses();
         renderBudgetSummary();
+        renderDailyBudgets();
       });
       expenseListEl.appendChild(item);
     });
@@ -3979,16 +4161,20 @@
     const currency = expenseCurrencySelect.value;
     const desc = document.getElementById('expense-desc').value.trim();
     if (!amount || amount <= 0) { alert('Informe um valor válido.'); return; }
-    state.expenses.push({ traveler, category, amount, currency, desc, date: new Date().toISOString() });
+    const tripDate = expenseDayFieldEl.style.display !== 'none' ? expenseDaySelect.value : localDateStr();
+    state.expenses.push({ traveler, category, amount, currency, desc, date: new Date().toISOString(), tripDate });
     document.getElementById('expense-amount').value = '';
     document.getElementById('expense-desc').value = '';
     saveState();
     renderExpenses();
     renderBudgetSummary();
+    renderDailyBudgets();
   });
 
   renderExpenseTravelerOptions();
+  renderExpenseDayOptions();
   renderExpenses();
+  renderDailyBudgets();
   renderBudgetSummary();
 
   initFirebaseSync();
