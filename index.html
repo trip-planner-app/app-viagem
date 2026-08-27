@@ -926,15 +926,33 @@
   .breakdown-bar .fill { height: 100%; background: var(--accent); }
   .breakdown-bar .fill.alt { background: var(--accent2); }
 
-  .daily-budget-row { border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px; margin-bottom: 10px; background: var(--card2); }
+  .daily-budget-card-toggle { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; }
+  .daily-budget-card-toggle h3 { margin: 0; }
+  .daily-budget-card-toggle-right { display: flex; align-items: center; gap: 8px; flex: none; }
+  .daily-budget-today-summary { font-size: var(--fs-sm); color: var(--muted); font-weight: 700; white-space: nowrap; }
+  .daily-budget-chevron { width: 18px; height: 18px; flex: none; color: var(--muted); transition: transform .15s ease; }
+  .daily-budget-chevron.expanded { transform: rotate(180deg); }
+  .daily-budget-list { display: none; margin-top: 14px; }
+  .daily-budget-list.expanded { display: block; }
+
+  .daily-budget-row { border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: 10px; background: var(--card2); overflow: hidden; }
   .daily-budget-row:last-child { margin-bottom: 0; }
   .daily-budget-row.today { border-color: var(--accent2); }
-  .daily-budget-row .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: var(--fs-sm); margin-bottom: 6px; }
-  .daily-budget-row .top .day-label { color: var(--text); font-weight: 700; }
-  .daily-budget-row .top .day-label .today-tag { color: var(--accent2); font-weight: 800; }
-  .daily-budget-row .top .amt { color: var(--muted); font-weight: 700; flex: none; }
-  .daily-budget-row .progress-bar { margin-top: 0; }
-  .daily-budget-row .cap-field { max-width: 220px; margin-top: 8px; }
+  .daily-budget-row-summary { display: flex; align-items: center; gap: 10px; padding: 12px; cursor: pointer; font-size: var(--fs-sm); }
+  .daily-budget-row-summary .day-label { color: var(--text); font-weight: 700; flex: none; }
+  .daily-budget-row-summary .day-label .today-tag { color: var(--accent2); font-weight: 800; }
+  .daily-budget-row-summary .mini-bar { flex: 1; min-width: 30px; height: 6px; border-radius: var(--radius-pill); background: var(--card); overflow: hidden; }
+  .daily-budget-row-summary .mini-bar .fill { height: 100%; }
+  .daily-budget-row-summary .amt { color: var(--muted); font-weight: 700; font-size: var(--fs-xs); flex: none; white-space: nowrap; }
+  .daily-budget-row-summary .chevron { width: 16px; height: 16px; flex: none; color: var(--muted); transition: transform .15s ease; }
+  .daily-budget-row-summary .chevron.expanded { transform: rotate(180deg); }
+  .daily-budget-row-detail { display: none; padding: 0 12px 12px; }
+  .daily-budget-row-detail.expanded { display: block; }
+  .daily-budget-row-detail .cap-field { max-width: 220px; }
+  .daily-budget-expenses { margin-top: 10px; }
+  .daily-budget-expense-item { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--border); font-size: var(--fs-sm); }
+  .daily-budget-expense-item:first-child { border-top: none; }
+  .daily-budget-expense-item .amt { font-weight: 700; color: var(--text); flex: none; }
 
   /* Responsive: collapse sidebar to a top bar on small screens */
   /* ---------------- Barra de abas fixa (navegação nativa no mobile) ---------------- */
@@ -1414,9 +1432,15 @@
     </div>
 
     <div class="card" id="daily-budget-card">
-      <h3>🎯 Teto diário de gastos</h3>
-      <p class="hint" id="daily-budget-hint" style="margin:0 0 10px;">Cadastre as datas de partida e chegada dos voos (aba Voos) para habilitar o controle de teto por dia da viagem.</p>
-      <div id="daily-budget-list"></div>
+      <div class="daily-budget-card-toggle" id="daily-budget-toggle">
+        <h3>🎯 Teto diário de gastos</h3>
+        <div class="daily-budget-card-toggle-right">
+          <span class="daily-budget-today-summary" id="daily-budget-today-summary"></span>
+          <svg class="daily-budget-chevron" id="daily-budget-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
+      <p class="hint" id="daily-budget-hint" style="margin:10px 0 0;">Cadastre as datas de partida e chegada dos voos (aba Voos) para habilitar o controle de teto por dia da viagem.</p>
+      <div id="daily-budget-list" class="daily-budget-list"></div>
     </div>
 
     <div class="card">
@@ -3858,6 +3882,19 @@
   const expenseDaySelect = document.getElementById('expense-day');
   const dailyBudgetHintEl = document.getElementById('daily-budget-hint');
   const dailyBudgetListEl = document.getElementById('daily-budget-list');
+  const dailyBudgetToggleEl = document.getElementById('daily-budget-toggle');
+  const dailyBudgetChevronEl = document.getElementById('daily-budget-chevron');
+  const dailyBudgetTodaySummaryEl = document.getElementById('daily-budget-today-summary');
+  // Acordeão: fechado por padrão pra não deixar a aba Money enorme — o
+  // estado (qual dia está aberto, se o card todo está aberto) vive só em
+  // memória, não em `state`, então não precisa sincronizar entre aparelhos.
+  let dailyBudgetExpanded = false;
+  const expandedBudgetDays = new Set();
+  dailyBudgetToggleEl.addEventListener('click', () => {
+    dailyBudgetExpanded = !dailyBudgetExpanded;
+    dailyBudgetListEl.classList.toggle('expanded', dailyBudgetExpanded);
+    dailyBudgetChevronEl.classList.toggle('expanded', dailyBudgetExpanded);
+  });
 
   populateCurrencySelect(budgetCurrencySelect, state.budgetCurrency);
   populateCurrencySelect(expenseCurrencySelect, state.budgetCurrency);
@@ -3994,15 +4031,29 @@
 
   function renderDailyBudgets() {
     const tripDays = getTripDays();
+    const totals = dailyExpenseTotals();
+    const today = localDateStr();
+
+    // Resumo de hoje fica visível no cabeçalho mesmo com o card fechado.
+    if (tripDays.includes(today)) {
+      const todayCap = state.dailyBudgets[today] || 0;
+      const todaySpent = (totals[today] || {})[state.budgetCurrency] || 0;
+      dailyBudgetTodaySummaryEl.textContent = 'Hoje: ' + fmtMoney(todaySpent, state.budgetCurrency) + (todayCap > 0 ? ' / ' + fmtMoney(todayCap, state.budgetCurrency) : '');
+      dailyBudgetTodaySummaryEl.style.display = '';
+    } else {
+      dailyBudgetTodaySummaryEl.style.display = 'none';
+    }
+
     if (!tripDays.length) {
       dailyBudgetHintEl.style.display = 'block';
       dailyBudgetListEl.innerHTML = '';
       return;
     }
     dailyBudgetHintEl.style.display = 'none';
-    const totals = dailyExpenseTotals();
-    const today = localDateStr();
     dailyBudgetListEl.innerHTML = '';
+    dailyBudgetListEl.classList.toggle('expanded', dailyBudgetExpanded);
+    dailyBudgetChevronEl.classList.toggle('expanded', dailyBudgetExpanded);
+
     tripDays.forEach((date, idx) => {
       const cap = state.dailyBudgets[date] || 0;
       const dayTotals = totals[date] || {};
@@ -4012,26 +4063,38 @@
       const mm = String(d.getMonth() + 1).padStart(2, '0');
       const otherCurrencies = Object.keys(dayTotals).filter(c => c !== state.budgetCurrency);
       const otherNote = otherCurrencies.length
-        ? '<div class="hint" style="margin:6px 0 0;">+ ' + otherCurrencies.map(c => fmtMoney(dayTotals[c], c)).join(' + ') + '</div>'
+        ? '<div class="hint" style="margin:0 0 10px;">+ ' + otherCurrencies.map(c => fmtMoney(dayTotals[c], c)).join(' + ') + '</div>'
         : '';
+      const dayExpenses = state.expenses.filter(e => e.tripDate === date);
+      const expensesHtml = dayExpenses.length
+        ? dayExpenses.map(e => `
+            <div class="daily-budget-expense-item">
+              <div><span class="cat-pill">${escapeHtml(e.category)}</span>${escapeHtml(e.desc || e.traveler)}</div>
+              <span class="amt">${fmtMoney(e.amount, e.currency || state.budgetCurrency)}</span>
+            </div>`).join('')
+        : '<p class="hint" style="margin:0;">Nenhum gasto lançado neste dia ainda.</p>';
 
       const row = document.createElement('div');
       row.className = 'daily-budget-row' + (date === today ? ' today' : '');
       row.innerHTML = `
-        <div class="top">
+        <div class="daily-budget-row-summary">
           <span class="day-label">Dia ${idx + 1} · ${dd}/${mm}${date === today ? ' · <span class="today-tag">hoje</span>' : ''}</span>
+          <div class="mini-bar"><div class="fill" style="width:0%"></div></div>
           <span class="amt">${fmtMoney(spent, state.budgetCurrency)}${cap > 0 ? ' / ' + fmtMoney(cap, state.budgetCurrency) : ''}</span>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
-        <div class="progress-bar"><div class="fill" style="width:0%"></div></div>
-        ${otherNote}
-        <div class="field cap-field">
-          <label class="field-label">Teto do dia (${state.budgetCurrency})</label>
-          <input type="number" step="0.01" min="0" placeholder="Ex: 300" class="daily-cap-input" value="${cap > 0 ? cap : ''}">
+        <div class="daily-budget-row-detail">
+          ${otherNote}
+          <div class="field cap-field">
+            <label class="field-label">Teto do dia (${state.budgetCurrency})</label>
+            <input type="number" step="0.01" min="0" placeholder="Ex: 300" class="daily-cap-input" value="${cap > 0 ? cap : ''}">
+          </div>
+          <div class="daily-budget-expenses">${expensesHtml}</div>
         </div>
       `;
 
-      const fillEl = row.querySelector('.progress-bar .fill');
-      const amtEl = row.querySelector('.top .amt');
+      const fillEl = row.querySelector('.mini-bar .fill');
+      const summaryAmtEl = row.querySelector('.daily-budget-row-summary .amt');
       function paint(capVal) {
         const pct = capVal > 0 ? (spent / capVal) * 100 : 0;
         let color = 'var(--good)';
@@ -4039,7 +4102,7 @@
         else if (pct >= 75) color = 'var(--accent)';
         fillEl.style.width = Math.min(100, pct) + '%';
         fillEl.style.background = color;
-        amtEl.textContent = fmtMoney(spent, state.budgetCurrency) + (capVal > 0 ? ' / ' + fmtMoney(capVal, state.budgetCurrency) : '');
+        summaryAmtEl.textContent = fmtMoney(spent, state.budgetCurrency) + (capVal > 0 ? ' / ' + fmtMoney(capVal, state.budgetCurrency) : '');
       }
       paint(cap);
 
@@ -4049,6 +4112,19 @@
         else state.dailyBudgets[date] = val;
         saveState();
         paint(state.dailyBudgets[date] || 0);
+      });
+
+      const summaryEl = row.querySelector('.daily-budget-row-summary');
+      const detailEl = row.querySelector('.daily-budget-row-detail');
+      const rowChevronEl = row.querySelector('.daily-budget-row-summary .chevron');
+      if (expandedBudgetDays.has(date)) {
+        detailEl.classList.add('expanded');
+        rowChevronEl.classList.add('expanded');
+      }
+      summaryEl.addEventListener('click', () => {
+        const isExpanded = detailEl.classList.toggle('expanded');
+        rowChevronEl.classList.toggle('expanded', isExpanded);
+        if (isExpanded) expandedBudgetDays.add(date); else expandedBudgetDays.delete(date);
       });
 
       dailyBudgetListEl.appendChild(row);
