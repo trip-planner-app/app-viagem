@@ -780,17 +780,7 @@
   /* Resumo automático da viagem (aba Início) — calculado a partir dos voos
      cadastrados, sem campos pra preencher. */
   .resumo-auto-summary { margin-top: 6px; }
-  .resumo-auto-divider {
-    text-align: center;
-    font-size: var(--fs-xs);
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: .04em;
-    font-weight: 700;
-    margin: 18px 0 6px;
-    padding-top: 16px;
-    border-top: 1px dashed var(--border);
-  }
+  .resumo-auto-divider { margin: 4px 0 10px; border-top: 1px dashed var(--border); }
   .resumo-auto-stat { display: flex; justify-content: center; align-items: baseline; gap: 8px; margin: 4px 0 6px; }
   .resumo-auto-stat-label { font-size: var(--fs-sm); color: var(--muted); font-weight: 600; }
   .resumo-auto-stat-value { font-size: var(--fs-xl); color: var(--text); font-weight: 800; }
@@ -1353,11 +1343,6 @@
     <div class="card">
       <h3>📍 Visão geral da viagem</h3>
       <div class="field">
-        <label class="field-label">Data de embarque</label>
-        <input type="date" id="resumo-embarque">
-        <p class="hint" style="margin:4px 0 0;">Usada para a contagem regressiva no topo da tela.</p>
-      </div>
-      <div class="field">
         <label class="field-label">Destinos</label>
         <div class="traveler-select" id="resumo-destinos-list"></div>
         <div class="add-row">
@@ -1900,7 +1885,7 @@
     voos: [],
     hoteis: [],
     hotelNotasGerais: '',
-    resumo: { embarque: '', destinosList: [] },
+    resumo: { destinosList: [] },
     roteiro: [],
     budgetTotal: null,
     budgetCurrency: 'USD',
@@ -1949,7 +1934,6 @@
     s.tripSubtitle = s.tripSubtitle || '';
     s.hotelNotasGerais = s.hotelNotasGerais || '';
     s.resumo = s.resumo && typeof s.resumo === 'object' ? s.resumo : {};
-    if (!s.resumo.embarque) s.resumo.embarque = '';
     if (!Array.isArray(s.resumo.destinosList)) s.resumo.destinosList = [];
     // Voos antigos guardavam horaOrigem/horaDestino como texto livre sem ano
     // (ex: "22/11 · 22:25"). Migra uma única vez pros campos estruturados
@@ -2634,12 +2618,7 @@
     if (state.tripSubtitle) html += `<div class="pe-subtitle">${escapeHtml(state.tripSubtitle)}</div>`;
 
     html += '<h2>📍 Visão geral</h2>';
-    const fmtResumoDate = (ds) => {
-      if (!ds) return '';
-      const d = new Date(ds + 'T00:00:00');
-      return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
-    };
-    const resumoRows = [['Data de embarque', fmtResumoDate(r.embarque)]];
+    const resumoRows = [];
     const bounds = getTripBounds();
     if (bounds) {
       const { first, last } = bounds;
@@ -2881,19 +2860,11 @@
   });
 
   // ---------- Resumo (editável) ----------
-  // Só "Data de embarque" (dispara a contagem regressiva) e "Destinos" (usado
-  // pela previsão do tempo — precisa ser um nome de lugar legível, não dá pra
-  // calcular a partir do código IATA dos voos) continuam digitados à mão. O
-  // resto (duração, ida, volta) é só exibição, calculado a partir dos voos —
-  // ver renderResumoAutoSummary() logo abaixo.
-  const resumoEmbarqueInput = document.getElementById('resumo-embarque');
-  resumoEmbarqueInput.value = state.resumo.embarque || '';
-  resumoEmbarqueInput.addEventListener('input', () => {
-    state.resumo.embarque = resumoEmbarqueInput.value;
-    saveState();
-    updateCountdown();
-    updateTripAlerts();
-  });
+  // Só "Destinos" continua digitado à mão (usado pela previsão do tempo —
+  // precisa ser um nome de lugar legível, não dá pra calcular a partir do
+  // código IATA dos voos). O resto (contagem regressiva, duração, ida,
+  // volta) é só exibição, calculado a partir dos voos cadastrados — ver
+  // getTripBounds()/renderResumoAutoSummary() logo abaixo.
 
   // Destinos: lista de cidades (chips), não um texto único — uma viagem
   // costuma passar por mais de um lugar. A previsão do tempo usa sempre a
@@ -2953,7 +2924,7 @@
     if (!el) return;
     const bounds = getTripBounds();
     if (!bounds) {
-      el.innerHTML = '<p class="hint resumo-auto-empty">Cadastre voos na aba Voos para ver aqui a duração e as datas de ida e volta, calculadas automaticamente.</p>';
+      el.innerHTML = '<p class="hint resumo-auto-empty">Cadastre voos na aba Voos para ver aqui, calculados automaticamente: a contagem regressiva no topo da tela, a duração da viagem e as datas de ida e volta.</p>';
       return;
     }
     const { first, last } = bounds;
@@ -2973,7 +2944,7 @@
         </div>
       </div>`;
 
-    let html = '<div class="resumo-auto-divider">Calculado a partir dos voos cadastrados</div>';
+    let html = '<div class="resumo-auto-divider"></div>';
     if (duracaoTxt) html += `<div class="resumo-auto-stat"><span class="resumo-auto-stat-label">Duração</span><span class="resumo-auto-stat-value">${duracaoTxt}</span></div>`;
     html += legHtml(first, last === first ? 'Voo' : 'Ida');
     if (last !== first) html += legHtml(last, 'Volta');
@@ -2981,7 +2952,6 @@
   }
 
   function renderResumo() {
-    resumoEmbarqueInput.value = state.resumo.embarque || '';
     renderDestinosChips();
     updateCountdown();
     updateWeatherBadge();
@@ -3163,14 +3133,15 @@
   });
 
   // ---------- Countdown ----------
-  // A data vem de state.resumo.embarque (campo editável na aba Início), não
-  // mais fixa no código — cada viagem/código tem a sua própria data.
+  // A data vem do primeiro voo cadastrado (por ordem cronológica de
+  // partida) — ver getTripBounds() na aba Início. Não é mais um campo à
+  // parte pra evitar ficar dessincronizado do que está na aba Voos.
   function updateCountdown() {
     const el = document.getElementById('countdown');
     if (!el) return;
-    const embarque = state.resumo.embarque;
-    if (!embarque) { el.textContent = 'Defina a data de embarque na aba Início'; return; }
-    const tripDate = new Date(embarque + 'T00:00:00');
+    const bounds = getTripBounds();
+    if (!bounds) { el.textContent = 'Cadastre um voo na aba Voos para ver a contagem regressiva'; return; }
+    const tripDate = combineVooDateTime(bounds.first.origemData, bounds.first.origemHora);
     const diff = tripDate - new Date();
     if (diff <= 0) { el.textContent = 'Boa viagem! ✈️'; return; }
     const days = Math.floor(diff / (1000*60*60*24));
@@ -3225,10 +3196,9 @@
   }
 
   // Dias da viagem (pro teto diário de gastos): do início ao fim da viagem,
-  // inferidos de QUALQUER data estruturada disponível — as datas dos voos
-  // (origemData/destinoData) e a data de embarque (aba Início), pro caso de
-  // ainda não haver voo cadastrado. O roteiro não serve pra isso porque
-  // guarda a data como texto livre ("25/11", sem ano).
+  // inferidos das datas estruturadas dos voos (origemData/destinoData). O
+  // roteiro não serve pra isso porque guarda a data como texto livre
+  // ("25/11", sem ano).
   function getTripDays() {
     let min = null, max = null;
     const consider = (ds) => {
@@ -3239,7 +3209,6 @@
       if (!max || d > max) max = d;
     };
     state.voos.forEach(v => { consider(v.origemData); consider(v.destinoData); });
-    consider(state.resumo.embarque);
     if (!min || !max) return [];
     // Sanidade: um typo na data de um voo (ex: ano digitado errado) não pode
     // travar o app tentando gerar centenas de milhares de dias.
@@ -3276,16 +3245,6 @@
       el.textContent = `✈️ ${label}: decola em ${hours}h${String(minutes).padStart(2, '0')}`;
       el.style.display = 'inline-block';
       return;
-    }
-
-    const embarque = state.resumo.embarque;
-    if (embarque) {
-      const diff = new Date(embarque + 'T00:00:00') - now;
-      if (diff > 0 && diff <= MS_48H) {
-        el.textContent = '🛎️ Sua viagem é em breve — confira se o check-in online já abriu.';
-        el.style.display = 'inline-block';
-        return;
-      }
     }
 
     el.style.display = 'none';
@@ -3556,7 +3515,7 @@
         inputEl.addEventListener('input', () => {
           voo[inputEl.dataset.field] = inputEl.value;
           saveState();
-          if (inputEl.dataset.field === 'origemData' || inputEl.dataset.field === 'origemHora') updateTripAlerts();
+          if (inputEl.dataset.field === 'origemData' || inputEl.dataset.field === 'origemHora') { updateTripAlerts(); updateCountdown(); }
           if (inputEl.dataset.field === 'origemData' || inputEl.dataset.field === 'origemHora' || inputEl.dataset.field === 'destinoData' || inputEl.dataset.field === 'destinoHora') {
             renderDailyBudgets();
             renderExpenseDayOptions();
@@ -3591,6 +3550,7 @@
       voosListEl.appendChild(card);
     });
     updateTripAlerts();
+    updateCountdown();
     renderResumoAutoSummary();
   }
 
