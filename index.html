@@ -580,7 +580,7 @@
   }
   .add-voo-chooser-opt:hover { border-color: var(--accent2); }
   .add-voo-chooser-opt:active { transform: scale(.98); opacity: .85; }
-  .add-voo-chooser-icon { font-size: 22px; flex: none; line-height: 1; }
+  .add-voo-chooser-icon { width: 22px; height: 22px; flex: none; color: var(--accent2); }
   .add-voo-chooser-text { display: flex; flex-direction: column; gap: 2px; }
   .add-voo-chooser-text strong { font-size: var(--fs-base); color: var(--text); }
   .add-voo-chooser-text small { font-size: var(--fs-xs); color: var(--muted); line-height: 1.35; }
@@ -773,7 +773,8 @@
   .flight-leg .pt { text-align: center; }
   .flight-leg .pt .code { font-size: var(--fs-2xl); font-weight: 800; color: var(--text); }
   .flight-leg .pt .time { font-size: var(--fs-base); color: var(--muted); }
-  .flight-leg .arrow { color: var(--accent2); font-size: var(--fs-xl); flex: 1; text-align: center; }
+  .flight-leg .arrow { color: var(--accent2); font-size: var(--fs-xl); flex: 1; text-align: center; display: flex; justify-content: center; }
+  .arrow-icon { width: 22px; height: 22px; }
   .flight-meta { font-size: var(--fs-sm); color: var(--muted); margin-top: 4px; }
   .tag {
     display: inline-block;
@@ -794,7 +795,7 @@
   .flight-leg-edit { display: flex; align-items: center; gap: 8px; }
   .flight-leg-edit .pt-edit { flex: 1; text-align: center; }
   .flight-leg-edit .pt-edit input.code-input { text-align: center; font-size: var(--fs-xl); font-weight: 800; margin-bottom: 4px; }
-  .flight-leg-edit .arrow { color: var(--accent2); font-size: var(--fs-xl); flex: none; padding: 0 4px; }
+  .flight-leg-edit .arrow { color: var(--accent2); font-size: var(--fs-xl); flex: none; padding: 0 4px; display: flex; align-items: center; }
 
   /* Card de voo: badge numerado + resumo sempre visível + campos de edição
      recolhidos por padrão num acordeão (mesmo padrão do teto diário). */
@@ -810,7 +811,8 @@
   .voo-trecho-label { font-size: var(--fs-sm); color: var(--muted); font-weight: 600; margin-left: 8px; }
   .voo-summary-codigo { text-align: center; font-weight: 700; color: var(--text); font-size: var(--fs-md); margin-top: 2px; }
   .voo-summary-meta { text-align: center; font-size: var(--fs-sm); color: var(--muted); margin-top: 2px; }
-  .voo-summary-warning { text-align: center; font-size: var(--fs-sm); color: var(--danger); margin-top: 8px; font-weight: 600; }
+  .voo-summary-warning { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: var(--fs-sm); color: var(--danger); margin-top: 8px; font-weight: 600; }
+  .voo-summary-warning .warning-icon { width: 15px; height: 15px; flex: none; }
   .voo-summary-empty-hint { text-align: center; margin: 4px 0 0; }
   .voo-fields-toggle {
     display: flex;
@@ -1377,8 +1379,8 @@
     <div class="page-title-row">
       <div class="page-title">Voos</div>
       <div style="display:flex; gap:8px;">
-        <input type="file" id="import-pkpass-input" accept=".pkpass,application/vnd.apple.pkpass" style="display:none;">
-        <button class="btn" id="open-voos-table-btn">📋 Resumo</button>
+        <input type="file" id="voo-upload-input" accept="image/*,application/pdf,.pkpass,application/vnd.apple.pkpass" style="display:none;">
+        <button class="btn" id="open-voos-table-btn">Resumo</button>
         <button class="btn primary" id="add-voo-btn">+ Adicionar voo</button>
       </div>
     </div>
@@ -1604,19 +1606,19 @@
 
 <div id="add-voo-chooser-overlay">
   <div id="add-voo-chooser-box">
-    <h3>✈️ Adicionar voo</h3>
+    <h3>Adicionar voo</h3>
     <p class="hint">Como você quer inserir os dados desse voo?</p>
     <div class="add-voo-chooser-options">
       <button class="add-voo-chooser-opt" id="add-voo-chooser-scan" type="button">
-        <span class="add-voo-chooser-icon">📷</span>
+        <svg class="add-voo-chooser-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
         <span class="add-voo-chooser-text"><strong>Escanear cartão</strong><small>Aponta a câmera para o código de barras do cartão de embarque</small></span>
       </button>
-      <button class="add-voo-chooser-opt" id="add-voo-chooser-pkpass" type="button">
-        <span class="add-voo-chooser-icon">📥</span>
-        <span class="add-voo-chooser-text"><strong>Importar do Wallet</strong><small>Arquivo .pkpass salvo no Apple Wallet</small></span>
+      <button class="add-voo-chooser-opt" id="add-voo-chooser-upload" type="button">
+        <svg class="add-voo-chooser-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <span class="add-voo-chooser-text"><strong>Carregar arquivo</strong><small>Imagem ou PDF do cartão de embarque — lemos os dados automaticamente quando possível</small></span>
       </button>
       <button class="add-voo-chooser-opt" id="add-voo-chooser-manual" type="button">
-        <span class="add-voo-chooser-icon">✏️</span>
+        <svg class="add-voo-chooser-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
         <span class="add-voo-chooser-text"><strong>Preencher manualmente</strong><small>Digite os dados do voo você mesmo</small></span>
       </button>
     </div>
@@ -1634,7 +1636,7 @@
 
 <div id="voos-table-overlay" class="table-overlay">
   <div class="table-overlay-header">
-    <span>📋 Voos resumidos</span>
+    <span>Voos resumidos</span>
     <button class="btn primary" id="voos-table-close">✕ Fechar</button>
   </div>
   <div id="voos-table-body" class="table-overlay-body"></div>
@@ -3322,6 +3324,8 @@
 
   // ---------- Voos (editável, lista dinâmica) ----------
   const voosListEl = document.getElementById('voos-list');
+  const VOO_ARROW_ICON = '<svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="20" y2="12"/><polyline points="14 6 20 12 14 18"/></svg>';
+  const VOO_WARNING_ICON = '<svg class="warning-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
 
   // Campos que faltam (usado tanto pro aviso no resumo quanto pra decidir se
   // o card já nasce aberto no acordeão, cutucando o usuário a completar).
@@ -3367,12 +3371,12 @@
         <div class="voo-summary">
           <div class="flight-leg">
             <div class="pt"><div class="code">${escapeHtml(voo.origem) || '—'}</div><div class="time">${escapeHtml(fmtVooDateTime(voo.origemData, voo.origemHora)) || 'sem data/hora'}</div></div>
-            <div class="arrow">✈</div>
+            <div class="arrow">${VOO_ARROW_ICON}</div>
             <div class="pt"><div class="code">${escapeHtml(voo.destino) || '—'}</div><div class="time">${escapeHtml(fmtVooDateTime(voo.destinoData, voo.destinoHora)) || 'sem data/hora'}</div></div>
           </div>
           ${voo.codigo ? `<div class="voo-summary-codigo">${escapeHtml(voo.codigo)}</div>` : ''}
           ${voo.meta ? `<div class="voo-summary-meta">${escapeHtml(voo.meta)}</div>` : ''}
-          ${missing.length ? `<div class="voo-summary-warning">⚠️ Falta preencher: ${escapeHtml(missing.join(', '))}</div>` : ''}
+          ${missing.length ? `<div class="voo-summary-warning">${VOO_WARNING_ICON} Falta preencher: ${escapeHtml(missing.join(', '))}</div>` : ''}
         </div>` : `<p class="hint voo-summary-empty-hint">Preencha os campos abaixo ou anexe/importe o cartão de embarque.</p>`}
         <div class="voo-fields-toggle" data-action="toggle-fields">
           <span class="voo-fields-toggle-label">${expanded ? 'Recolher' : 'Editar dados do voo'}</span>
@@ -3393,7 +3397,7 @@
             <div class="pt-edit">
               <input type="text" class="code-input" data-field="origem" value="${escapeAttr(voo.origem)}" placeholder="GIG">
             </div>
-            <div class="arrow">✈</div>
+            <div class="arrow">${VOO_ARROW_ICON}</div>
             <div class="pt-edit">
               <input type="text" class="code-input" data-field="destino" value="${escapeAttr(voo.destino)}" placeholder="MIA">
             </div>
@@ -3470,9 +3474,11 @@
   function openAddVooChooser() { addVooChooserOverlay.classList.add('open'); }
   function closeAddVooChooser() { addVooChooserOverlay.classList.remove('open'); }
   function addManualVoo() {
-    state.voos.push({ id: 'voo_' + uid(), trecho: '', codigo: '', origem: '', origemData: '', origemHora: '', destino: '', destinoData: '', destinoHora: '', meta: '' });
+    const voo = { id: 'voo_' + uid(), trecho: '', codigo: '', origem: '', origemData: '', origemHora: '', destino: '', destinoData: '', destinoHora: '', meta: '' };
+    state.voos.push(voo);
     saveState();
     renderVoos();
+    return voo;
   }
   document.getElementById('add-voo-btn').addEventListener('click', openAddVooChooser);
   document.getElementById('add-voo-chooser-cancel').addEventListener('click', closeAddVooChooser);
@@ -3484,9 +3490,9 @@
     closeAddVooChooser();
     startBoardingPassScan();
   });
-  document.getElementById('add-voo-chooser-pkpass').addEventListener('click', () => {
+  document.getElementById('add-voo-chooser-upload').addEventListener('click', () => {
     closeAddVooChooser();
-    document.getElementById('import-pkpass-input').click();
+    document.getElementById('voo-upload-input').click();
   });
   renderVoos();
 
@@ -3527,9 +3533,11 @@
     document.getElementById('boarding-pass-overlay').classList.remove('open');
   }
 
-  // Cria o voo a partir dos dados lidos (câmera ou .pkpass) e atualiza a tela.
+  // Cria o voo a partir dos dados lidos (câmera, arquivo ou .pkpass), atualiza
+  // a tela e devolve o voo criado — quem chamou pode usar o id pra, por
+  // exemplo, anexar o arquivo de origem a esse mesmo voo.
   function addVooFromScan(fields) {
-    state.voos.push({
+    const voo = {
       id: 'voo_' + uid(),
       trecho: 'Trecho ' + (state.voos.length + 1),
       codigo: fields.codigo || '',
@@ -3540,11 +3548,13 @@
       destinoData: fields.destinoData || '',
       destinoHora: fields.destinoHora || '',
       meta: fields.meta || ''
-    });
+    };
+    state.voos.push(voo);
     saveState();
     renderVoos();
     renderDailyBudgets();
     renderExpenseDayOptions();
+    return voo;
   }
 
   async function startBoardingPassScan() {
@@ -3577,14 +3587,16 @@
 
   document.getElementById('boarding-pass-cancel-btn').addEventListener('click', closeBoardingPassScanner);
 
-  // ---------- Importar cartão de embarque via arquivo .pkpass (Apple Wallet) ----------
-  // Um .pkpass é apenas um .zip contendo pass.json (+ imagens). Diferente do
-  // código de barras sozinho, o pass.json costuma trazer "relevantDate" (data
-  // e hora reais de embarque/partida) e campos com dateStyle/timeStyle — por
-  // isso conseguimos preencher hora de partida (e às vezes chegada) que a
-  // leitura por câmera nunca tem. Continuamos aproveitando o parseBCBP no
-  // texto do código de barras embutido no pass pra pegar cia/voo/PNR/assento,
-  // já que isso é padronizado e o resto do pass.json não é.
+  // ---------- Carregar arquivo (imagem/PDF do cartão, ou .pkpass do Wallet) ----------
+  // iOS não deixa uma página web "abrir" o Wallet nem navegar até os passes
+  // guardados nele a partir do seletor de arquivo — só dá pra escolher um
+  // .pkpass se ele já tiver sido exportado manualmente pro app Arquivos, o
+  // que não é o caminho comum. Por isso o fluxo principal aqui é ler o
+  // código de barras (BCBP) direto de uma FOTO/print/PDF do cartão — a mesma
+  // leitura que já fazíamos pela câmera, só que a partir de um arquivo. Se o
+  // arquivo escolhido for mesmo um .pkpass exportado, ainda aproveitamos o
+  // parser dedicado abaixo (que extrai mais dados que o código de barras
+  // sozinho), mas isso é só um bônus silencioso, não o caminho anunciado.
   function walletFieldGroups(boarding) {
     return [boarding.headerFields, boarding.primaryFields, boarding.secondaryFields, boarding.auxiliaryFields, boarding.backFields].filter(Array.isArray);
   }
@@ -3644,22 +3656,130 @@
     };
   }
 
-  document.getElementById('import-pkpass-input').addEventListener('change', async (e) => {
+  // Nem toda promessa aqui tem garantia de terminar (ex: o worker do pdf.js
+  // pode nunca responder numa aba em segundo plano/sem foco). Sem um limite
+  // de tempo, uma falha assim trava a leitura automática pra sempre — com
+  // isso, ela só desiste e cai no preenchimento manual.
+  function withTimeout(promise, ms) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('tempo esgotado')), ms))
+    ]);
+  }
+
+  // Lê um código de barras BCBP a partir de uma imagem estática (não vídeo).
+  // Usa uma instância própria do leitor, separada da câmera ao vivo
+  // (boardingPassReader), pra não interferir numa sessão de câmera em curso.
+  async function decodeBCBPFromImageDataUrl(dataUrl) {
+    const hints = new Map();
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.PDF_417, ZXing.BarcodeFormat.QR_CODE, ZXing.BarcodeFormat.AZTEC]);
+    const reader = new ZXing.BrowserMultiFormatReader();
+    reader.hints = hints;
+    try {
+      const result = await withTimeout(reader.decodeFromImageUrl(dataUrl), 12000);
+      return parseBCBP(result.getText());
+    } catch (e) {
+      return null; // nenhum código de barras reconhecível na imagem (ou demorou demais)
+    } finally {
+      reader.reset();
+    }
+  }
+
+  // PDF → PNG da primeira página, pra poder rodar o mesmo leitor de código de
+  // barras usado nas imagens (reaproveita o pdf.js já carregado pro visualizador).
+  async function renderPdfFirstPageToDataUrl(pdfDataUrl) {
+    if (!window.pdfjsLib) return null;
+    try {
+      const bytes = base64ToUint8Array(pdfDataUrl);
+      const pdf = await withTimeout(pdfjsLib.getDocument({ data: bytes }).promise, 12000);
+      const page = await withTimeout(pdf.getPage(1), 12000);
+      const viewport = page.getViewport({ scale: 2 });
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      await withTimeout(page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise, 12000);
+      return canvas.toDataURL('image/png');
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function bcbpToVooFields(parsed) {
+    return {
+      codigo: parsed.carrier + ' ' + parsed.flightNum,
+      origem: parsed.origem,
+      origemData: julianToISODate(parsed.julianStr),
+      destino: parsed.destino,
+      meta: 'Assento ' + (parsed.seat || '—') + (parsed.pnr ? ' · PNR ' + parsed.pnr : '') + ' · via cartão de embarque anexado'
+    };
+  }
+
+  // Ler o código de barras pode levar alguns segundos (mais ainda num PDF, que
+  // primeiro precisa ser desenhado como imagem) — sem algum feedback nesse
+  // meio tempo a tela fica parada e parece travada. Esse aviso soma ao topo
+  // da lista de voos enquanto isso roda.
+  function setVooUploadLoading(show) {
+    let el = document.getElementById('voo-upload-loading');
+    if (show) {
+      if (el) return;
+      el = document.createElement('p');
+      el.id = 'voo-upload-loading';
+      el.className = 'hint';
+      el.style.textAlign = 'center';
+      el.style.margin = '0 0 12px';
+      el.textContent = 'Lendo o cartão de embarque…';
+      voosListEl.parentNode.insertBefore(el, voosListEl);
+    } else if (el) {
+      el.remove();
+    }
+  }
+
+  document.getElementById('voo-upload-input').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     e.target.value = '';
     if (!file) return;
+
+    setVooUploadLoading(true);
+    const data = await fileToDataUrl(file);
+    const isPkpass = /\.pkpass$/i.test(file.name) || file.type === 'application/vnd.apple.pkpass';
+    const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+
+    let fields = null;
+    if (isPkpass) {
+      try { fields = await parsePkpassFile(file); } catch (e) { fields = null; }
+    } else {
+      const imageDataUrl = isPdf ? await renderPdfFirstPageToDataUrl(data) : data;
+      const parsed = imageDataUrl ? await decodeBCBPFromImageDataUrl(imageDataUrl) : null;
+      if (parsed) fields = bcbpToVooFields(parsed);
+    }
+
+    // Cria o voo (com os dados lidos, ou em branco pra preencher na mão) e
+    // sempre anexa o próprio arquivo enviado — mesmo quando não dá pra ler
+    // os dados automaticamente, o cartão fica guardado e visível no card.
+    const voo = fields ? addVooFromScan(fields) : addManualVoo();
+    if (!state.attachments[voo.id]) state.attachments[voo.id] = [];
+    const fileKey = uid();
     try {
-      const fields = await parsePkpassFile(file);
-      addVooFromScan(fields);
+      await idbSet(fileKey, data);
+      state.attachments[voo.id].push({ name: file.name, fileKey });
+      fbFileSet(fileKey, data).catch(() => {});
+    } catch (e) {
+      alert('Não foi possível salvar o arquivo "' + file.name + '". Tente um arquivo menor.');
+    }
+    saveState();
+    setVooUploadLoading(false);
+    renderVoos();
+
+    if (!fields) {
+      alert('Anexamos o arquivo, mas não conseguimos ler os dados automaticamente (nenhum código de barras reconhecível). Preencha os campos manualmente no card do voo.');
+    } else {
       const faltando = [];
       if (!fields.origemHora) faltando.push('hora de partida');
       if (!fields.destinoData) faltando.push('data de chegada');
       if (!fields.destinoHora) faltando.push('hora de chegada');
       if (faltando.length) {
-        alert('Voo importado! Este .pkpass não trazia ' + faltando.join(', ') + ' — complete manualmente no card do voo.');
+        alert('Voo adicionado! Não veio ' + faltando.join(', ') + ' — complete manualmente no card do voo.');
       }
-    } catch (err) {
-      alert('Não foi possível importar este .pkpass: ' + (err.message || 'erro desconhecido') + '\n\nVocê ainda pode escanear o código de barras do cartão pela câmera, ou preencher o voo manualmente.');
     }
   });
 
