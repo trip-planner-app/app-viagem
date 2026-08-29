@@ -19,6 +19,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Onest:wght@700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://unpkg.com/@zxing/library@0.23.0/umd/index.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -1291,6 +1292,8 @@
       <div class="page-title">Voos</div>
       <div style="display:flex; gap:8px;">
         <button class="btn" id="scan-boarding-pass-btn"><svg class="trip-code-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="9" x2="7" y2="15"/><line x1="11" y1="9" x2="11" y2="15"/><line x1="15" y1="9" x2="15" y2="15"/><line x1="18" y1="9" x2="18" y2="15"/></svg> Escanear cartão</button>
+        <button class="btn" id="import-pkpass-btn">📥 Importar do Wallet (.pkpass)</button>
+        <input type="file" id="import-pkpass-input" accept=".pkpass,application/vnd.apple.pkpass" style="display:none;">
         <button class="btn" id="open-voos-table-btn">📋 Resumo</button>
         <button class="btn primary" id="add-voo-btn">+ Adicionar voo</button>
       </div>
@@ -1324,9 +1327,9 @@
     </div>
     <div class="card">
       <h3 id="doc-title">📄 Documentos</h3>
-      <p class="hint" style="margin:0 0 10px;">Passaporte, ESTA, seguro viagem, vouchers e outros PDFs.</p>
-      <button class="btn primary" id="doc-upload-btn">+ Adicionar PDF</button>
-      <input type="file" id="doc-upload-input" accept="application/pdf" multiple>
+      <p class="hint" style="margin:0 0 10px;">Passaporte, ESTA, seguro viagem, vouchers e outros documentos (PDF ou foto).</p>
+      <button class="btn primary" id="doc-upload-btn">+ Adicionar arquivo</button>
+      <input type="file" id="doc-upload-input" accept="application/pdf,image/*" multiple>
       <div class="attach-list" id="doc-list"></div>
     </div>
   </div>
@@ -2236,6 +2239,41 @@
       .catch(() => alert('Não foi possível autorizar esse e-mail.'));
   });
 
+  // Se uma atualização remota chegar enquanto o usuário está com um campo em
+  // edição (ex: seletor nativo de data/hora aberto), aplicar na hora e
+  // chamar renderAll() destrói o <input> em uso e fecha o seletor no meio da
+  // escolha. Por isso, nesse caso guardamos a atualização e só a aplicamos
+  // quando o foco sair do campo (ver listener de 'focusout' abaixo).
+  let pendingRemoteState = null;
+  function isEditingField() {
+    const ae = document.activeElement;
+    return !!ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName);
+  }
+  function applyRemoteState(remote) {
+    if (JSON.stringify(remote) === JSON.stringify(state)) return;
+    applyingRemote = true;
+    try {
+      state = normalizeState(remote);
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+      renderAll();
+    } finally {
+      applyingRemote = false;
+    }
+  }
+  document.addEventListener('focusout', (e) => {
+    if (!pendingRemoteState) return;
+    if (!/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+    // Pequeno atraso pra deixar o 'input' handler do campo salvar o valor
+    // (e o foco realmente sair, caso tenha só pulado pra outro campo) antes
+    // de reconstruir a tela.
+    setTimeout(() => {
+      if (isEditingField() || !pendingRemoteState) return;
+      const remote = pendingRemoteState;
+      pendingRemoteState = null;
+      applyRemoteState(remote);
+    }, 250);
+  });
+
   function attachTripSync(el) {
     if (fbRef) return;
     fbRef = firebase.database().ref('trips/' + TRIP_CODE + '/state');
@@ -2249,14 +2287,11 @@
           return;
         }
         if (JSON.stringify(remote) === JSON.stringify(state)) return;
-        applyingRemote = true;
-        state = normalizeState(remote);
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
-        renderAll();
+        if (isEditingField()) { pendingRemoteState = remote; return; }
+        applyRemoteState(remote);
       } catch (e) {
         console.warn('Erro ao aplicar dados sincronizados', e);
         if (el) el.textContent = '⚠️ erro ao sincronizar (ver console)';
-      } finally {
         applyingRemote = false;
       }
     }, (err) => {
@@ -2812,11 +2847,6 @@
     pdfModalBody.innerHTML = '<p style="font-family:sans-serif;padding:20px;color:#333;">Carregando...</p>';
     pdfModalOverlay.classList.add('open');
 
-    if (!window.pdfjsLib) {
-      pdfModalBody.innerHTML = '<p style="font-family:sans-serif;padding:20px;color:#333;">Não foi possível carregar o visualizador de PDF (sem conexão com a internet?). Tente novamente com internet.</p>';
-      return;
-    }
-
     // Compatibilidade: anexos antigos guardavam o PDF direto (f.data);
     // os novos guardam só uma referência (f.fileKey) e o PDF fica no IndexedDB.
     let data = f.data || await idbGet(f.fileKey);
@@ -2834,6 +2864,26 @@
     }
     if (!data) {
       pdfModalBody.innerHTML = '<p style="font-family:sans-serif;padding:20px;color:#333;">Não foi possível carregar este arquivo.</p>';
+      return;
+    }
+
+    // O próprio data URL carrega o MIME (data:image/...;base64,... ou
+    // data:application/pdf;base64,...), então não precisamos guardar o tipo
+    // à parte pra decidir como exibir — inclusive pra anexos antigos.
+    if (data.startsWith('data:image/')) {
+      pdfModalBody.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = data;
+      img.alt = title || 'Documento';
+      img.style.maxWidth = '100%';
+      img.style.display = 'block';
+      img.style.margin = '0 auto';
+      pdfModalBody.appendChild(img);
+      return;
+    }
+
+    if (!window.pdfjsLib) {
+      pdfModalBody.innerHTML = '<p style="font-family:sans-serif;padding:20px;color:#333;">Não foi possível carregar o visualizador de PDF (sem conexão com a internet?). Tente novamente com internet.</p>';
       return;
     }
 
@@ -3131,10 +3181,10 @@
     const btn = document.createElement('button');
     btn.className = 'btn primary';
     btn.style.marginTop = '10px';
-    btn.textContent = buttonLabel || '+ Anexar PDF';
+    btn.textContent = buttonLabel || '+ Anexar arquivo';
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = 'application/pdf';
+    input.accept = 'application/pdf,image/*';
     input.multiple = true;
     const listDiv = document.createElement('div');
     listDiv.className = 'attach-list';
@@ -3150,7 +3200,7 @@
           state.attachments[id].push({ name: file.name, fileKey });
           fbFileSet(fileKey, data).catch(() => {});
         } catch (e) {
-          alert('Não foi possível salvar o PDF "' + file.name + '". Tente um arquivo menor.');
+          alert('Não foi possível salvar o arquivo "' + file.name + '". Tente um arquivo menor.');
         }
       }
       saveState();
@@ -3297,6 +3347,26 @@
     document.getElementById('boarding-pass-overlay').classList.remove('open');
   }
 
+  // Cria o voo a partir dos dados lidos (câmera ou .pkpass) e atualiza a tela.
+  function addVooFromScan(fields) {
+    state.voos.push({
+      id: 'voo_' + uid(),
+      trecho: 'Trecho ' + (state.voos.length + 1),
+      codigo: fields.codigo || '',
+      origem: fields.origem || '',
+      origemData: fields.origemData || '',
+      origemHora: fields.origemHora || '',
+      destino: fields.destino || '',
+      destinoData: fields.destinoData || '',
+      destinoHora: fields.destinoHora || '',
+      meta: fields.meta || ''
+    });
+    saveState();
+    renderVoos();
+    renderDailyBudgets();
+    renderExpenseDayOptions();
+  }
+
   document.getElementById('scan-boarding-pass-btn').addEventListener('click', async () => {
     const overlay = document.getElementById('boarding-pass-overlay');
     const video = document.getElementById('boarding-pass-video');
@@ -3310,22 +3380,13 @@
         if (!result) return;
         const parsed = parseBCBP(result.getText());
         if (!parsed) return; // não parece cartão de embarque, continua escaneando
-        state.voos.push({
-          id: 'voo_' + uid(),
-          trecho: 'Trecho ' + (state.voos.length + 1),
+        addVooFromScan({
           codigo: parsed.carrier + ' ' + parsed.flightNum,
           origem: parsed.origem,
           origemData: julianToISODate(parsed.julianStr),
-          origemHora: '',
           destino: parsed.destino,
-          destinoData: '',
-          destinoHora: '',
           meta: 'Assento ' + (parsed.seat || '—') + (parsed.pnr ? ' · PNR ' + parsed.pnr : '') + ' · via cartão de embarque escaneado'
         });
-        saveState();
-        renderVoos();
-        renderDailyBudgets();
-        renderExpenseDayOptions();
         closeBoardingPassScanner();
       });
     } catch (e) {
@@ -3335,6 +3396,95 @@
   });
 
   document.getElementById('boarding-pass-cancel-btn').addEventListener('click', closeBoardingPassScanner);
+
+  // ---------- Importar cartão de embarque via arquivo .pkpass (Apple Wallet) ----------
+  // Um .pkpass é apenas um .zip contendo pass.json (+ imagens). Diferente do
+  // código de barras sozinho, o pass.json costuma trazer "relevantDate" (data
+  // e hora reais de embarque/partida) e campos com dateStyle/timeStyle — por
+  // isso conseguimos preencher hora de partida (e às vezes chegada) que a
+  // leitura por câmera nunca tem. Continuamos aproveitando o parseBCBP no
+  // texto do código de barras embutido no pass pra pegar cia/voo/PNR/assento,
+  // já que isso é padronizado e o resto do pass.json não é.
+  function walletFieldGroups(boarding) {
+    return [boarding.headerFields, boarding.primaryFields, boarding.secondaryFields, boarding.auxiliaryFields, boarding.backFields].filter(Array.isArray);
+  }
+  function findWalletField(groups, keywords, requireDateStyle) {
+    for (const group of groups) {
+      for (const field of group) {
+        if (requireDateStyle && !field.dateStyle && !field.timeStyle) continue;
+        const haystack = ((field.key || '') + ' ' + (field.label || '')).toLowerCase();
+        if (keywords.some(k => haystack.includes(k))) return field;
+      }
+    }
+    return null;
+  }
+  function splitWalletDateTime(value) {
+    if (!value) return null;
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return null;
+    return {
+      date: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'),
+      time: String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')
+    };
+  }
+  async function parsePkpassFile(file) {
+    const zip = await JSZip.loadAsync(file);
+    const passEntry = zip.file('pass.json');
+    if (!passEntry) throw new Error('pass.json não encontrado dentro do arquivo — não parece um .pkpass válido.');
+    const passJson = JSON.parse(await passEntry.async('string'));
+    const boarding = passJson.boardingPass || passJson.generic || passJson.eventTicket;
+    if (!boarding) throw new Error('Este .pkpass não parece ser um cartão de embarque.');
+
+    let bcbp = null;
+    const barcodes = passJson.barcodes || (passJson.barcode ? [passJson.barcode] : []);
+    for (const b of barcodes) {
+      const parsed = parseBCBP(b.message || '');
+      if (parsed) { bcbp = parsed; break; }
+    }
+
+    const groups = walletFieldGroups(boarding);
+    const depField = findWalletField(groups, ['depart', 'partida', 'saida', 'saída', 'boarding', 'embarque'], true);
+    const arrField = findWalletField(groups, ['arriv', 'chegada', 'landing'], true);
+    const origemField = findWalletField(groups, ['origin', 'origem', 'from']);
+    const destinoField = findWalletField(groups, ['destination', 'destino', 'to']);
+    const seatField = findWalletField(groups, ['seat', 'assento']);
+
+    const depDT = splitWalletDateTime(passJson.relevantDate) || (depField && splitWalletDateTime(depField.value));
+    const arrDT = arrField && splitWalletDateTime(arrField.value);
+
+    return {
+      codigo: bcbp ? (bcbp.carrier + ' ' + bcbp.flightNum).trim() : (passJson.description || passJson.organizationName || ''),
+      origem: (origemField && origemField.value) || (bcbp && bcbp.origem) || '',
+      destino: (destinoField && destinoField.value) || (bcbp && bcbp.destino) || '',
+      origemData: (depDT && depDT.date) || (bcbp && julianToISODate(bcbp.julianStr)) || '',
+      origemHora: (depDT && depDT.time) || '',
+      destinoData: (arrDT && arrDT.date) || '',
+      destinoHora: (arrDT && arrDT.time) || '',
+      meta: 'Assento ' + ((seatField && seatField.value) || (bcbp && bcbp.seat) || '—') + (bcbp && bcbp.pnr ? ' · PNR ' + bcbp.pnr : '') + ' · via .pkpass importado'
+    };
+  }
+
+  document.getElementById('import-pkpass-btn').addEventListener('click', () => {
+    document.getElementById('import-pkpass-input').click();
+  });
+  document.getElementById('import-pkpass-input').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const fields = await parsePkpassFile(file);
+      addVooFromScan(fields);
+      const faltando = [];
+      if (!fields.origemHora) faltando.push('hora de partida');
+      if (!fields.destinoData) faltando.push('data de chegada');
+      if (!fields.destinoHora) faltando.push('hora de chegada');
+      if (faltando.length) {
+        alert('Voo importado! Este .pkpass não trazia ' + faltando.join(', ') + ' — complete manualmente no card do voo.');
+      }
+    } catch (err) {
+      alert('Não foi possível importar este .pkpass: ' + (err.message || 'erro desconhecido') + '\n\nVocê ainda pode escanear o código de barras do cartão pela câmera, ou preencher o voo manualmente.');
+    }
+  });
 
   // ---------- Hotéis (editável, lista dinâmica) ----------
   const hoteisListEl = document.getElementById('hoteis-list');
@@ -3508,7 +3658,7 @@
         state.attachments[key].push({ name: file.name, fileKey });
         fbFileSet(fileKey, data).catch(() => {});
       } catch (e) {
-        alert('Não foi possível salvar o PDF "' + file.name + '". Tente um arquivo menor.');
+        alert('Não foi possível salvar o arquivo "' + file.name + '". Tente um arquivo menor.');
       }
     }
     saveState();
@@ -3607,7 +3757,7 @@
           renderRoteiro();
         });
         const attachZone = actCard.querySelector('.attach-zone-act');
-        setupAttachZone('act_' + act.id, attachZone, '+ Anexar PDF (ingresso/show)');
+        setupAttachZone('act_' + act.id, attachZone, '+ Anexar arquivo (ingresso/show)');
         actsWrap.appendChild(actCard);
       });
       card.appendChild(actsWrap);
