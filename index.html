@@ -886,6 +886,7 @@
     -webkit-min-logical-width: 0%;
   }
   textarea { resize: vertical; min-height: 44px; text-align: center; }
+  input[readonly] { background: var(--bg); color: var(--muted); cursor: default; }
   label.field-label { font-size: var(--fs-xs); color: var(--muted); display: block; margin-bottom: 3px; font-weight: 600; }
   .field { margin-bottom: 10px; }
   .field-row { display: flex; gap: 8px; }
@@ -1329,23 +1330,42 @@
       </div>
       <div class="field">
         <label class="field-label">Duração</label>
-        <input type="text" id="resumo-duracao" placeholder="Ex: 11 dias (8 dias nos EUA)">
+        <input type="text" id="resumo-duracao" placeholder="Calculada automaticamente" readonly>
+        <p class="hint" style="margin:4px 0 0;">Calculada a partir da data de embarque (ou saída) e da data de volta.</p>
       </div>
-      <div class="field">
-        <label class="field-label">Saída</label>
-        <input type="text" id="resumo-saida" placeholder="Ex: 22 nov, GIG (Galeão)">
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">Saída — data</label>
+          <input type="date" id="resumo-saida-data">
+        </div>
+        <div class="field">
+          <label class="field-label">Saída — aeroporto/cidade</label>
+          <input type="text" id="resumo-saida" placeholder="Ex: GIG (Galeão)">
+        </div>
       </div>
-      <div class="field">
-        <label class="field-label">Chegada</label>
-        <input type="text" id="resumo-chegada" placeholder="Ex: 23 nov, Miami → Orlando">
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">Chegada — data</label>
+          <input type="date" id="resumo-chegada-data">
+        </div>
+        <div class="field">
+          <label class="field-label">Chegada — aeroporto/cidade</label>
+          <input type="text" id="resumo-chegada" placeholder="Ex: Miami → Orlando">
+        </div>
       </div>
       <div class="field">
         <label class="field-label">Destinos</label>
         <input type="text" id="resumo-destinos" placeholder="Ex: Orlando (5 noites) + Miami Beach (3 noites)">
       </div>
-      <div class="field">
-        <label class="field-label">Volta</label>
-        <input type="text" id="resumo-volta" placeholder="Ex: 2 dez, via Miami → EZE → GIG">
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">Volta — data</label>
+          <input type="date" id="resumo-volta-data">
+        </div>
+        <div class="field">
+          <label class="field-label">Volta — aeroporto/cidade</label>
+          <input type="text" id="resumo-volta" placeholder="Ex: via Miami → EZE → GIG">
+        </div>
       </div>
     </div>
 
@@ -1885,7 +1905,7 @@
     voos: [],
     hoteis: [],
     hotelNotasGerais: '',
-    resumo: { embarque: '', duracao: '', saida: '', chegada: '', destinos: '', volta: '' },
+    resumo: { embarque: '', duracao: '', saidaData: '', saida: '', chegadaData: '', chegada: '', destinos: '', voltaData: '', volta: '' },
     roteiro: [],
     budgetTotal: null,
     budgetCurrency: 'USD',
@@ -1934,7 +1954,7 @@
     s.tripSubtitle = s.tripSubtitle || '';
     s.hotelNotasGerais = s.hotelNotasGerais || '';
     s.resumo = s.resumo && typeof s.resumo === 'object' ? s.resumo : {};
-    ['embarque','duracao','saida','chegada','destinos','volta'].forEach(k => { if (!s.resumo[k]) s.resumo[k] = ''; });
+    ['embarque','duracao','saidaData','saida','chegadaData','chegada','destinos','voltaData','volta'].forEach(k => { if (!s.resumo[k]) s.resumo[k] = ''; });
     // Voos antigos guardavam horaOrigem/horaDestino como texto livre sem ano
     // (ex: "22/11 · 22:25"). Migra uma única vez pros campos estruturados
     // (origemData/origemHora/destinoData/destinoHora) usando o parser de
@@ -2618,9 +2638,18 @@
     if (state.tripSubtitle) html += `<div class="pe-subtitle">${escapeHtml(state.tripSubtitle)}</div>`;
 
     html += '<h2>📍 Visão geral</h2>';
+    const fmtResumoDate = (ds) => {
+      if (!ds) return '';
+      const d = new Date(ds + 'T00:00:00');
+      return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+    };
+    const combineDateNote = (dateStr, note) => {
+      const d = fmtResumoDate(dateStr);
+      return d && note ? d + ' — ' + note : (d || note || '');
+    };
     const resumoRows = [
-      ['Data de embarque', r.embarque], ['Duração', r.duracao], ['Saída', r.saida],
-      ['Chegada', r.chegada], ['Destinos', r.destinos], ['Volta', r.volta]
+      ['Data de embarque', fmtResumoDate(r.embarque)], ['Duração', r.duracao], ['Saída', combineDateNote(r.saidaData, r.saida)],
+      ['Chegada', combineDateNote(r.chegadaData, r.chegada)], ['Destinos', r.destinos], ['Volta', combineDateNote(r.voltaData, r.volta)]
     ].filter(([, v]) => v);
     html += resumoRows.length
       ? resumoRows.map(([label, v]) => `<div class="pe-item"><span class="pe-title">${escapeHtml(label)}:</span> ${escapeHtml(v)}</div>`).join('')
@@ -2849,23 +2878,51 @@
   const resumoFieldMap = {
     embarque: 'resumo-embarque',
     duracao: 'resumo-duracao',
+    saidaData: 'resumo-saida-data',
     saida: 'resumo-saida',
+    chegadaData: 'resumo-chegada-data',
     chegada: 'resumo-chegada',
     destinos: 'resumo-destinos',
+    voltaData: 'resumo-volta-data',
     volta: 'resumo-volta'
   };
   const resumoInputs = {};
+  // "Duração" é calculada a partir de embarque/saída → volta, não digitada —
+  // ver updateResumoDuracao(). Os demais campos de data (saída/chegada/volta)
+  // alimentam tanto essa conta quanto os "dias da viagem" usados no teto
+  // diário e no lançamento de gastos (ver getTripDays()).
+  const RESUMO_DATE_KEYS = ['embarque', 'saidaData', 'chegadaData', 'voltaData'];
+  function updateResumoDuracao() {
+    const startStr = state.resumo.embarque || state.resumo.saidaData;
+    const endStr = state.resumo.voltaData;
+    let text = '';
+    if (startStr && endStr) {
+      const start = new Date(startStr + 'T00:00:00');
+      const end = new Date(endStr + 'T00:00:00');
+      const diffDays = Math.round((end - start) / 86400000) + 1;
+      if (diffDays >= 1) text = diffDays + (diffDays === 1 ? ' dia' : ' dias');
+    }
+    state.resumo.duracao = text;
+    resumoInputs.duracao.value = text;
+  }
   Object.keys(resumoFieldMap).forEach(key => {
     const el = document.getElementById(resumoFieldMap[key]);
     resumoInputs[key] = el;
     el.value = state.resumo[key] || '';
+    if (key === 'duracao') return; // campo calculado, sem listener próprio
     el.addEventListener('input', () => {
       state.resumo[key] = el.value;
+      if (RESUMO_DATE_KEYS.includes(key)) updateResumoDuracao();
       saveState();
       if (key === 'embarque') { updateCountdown(); updateTripAlerts(); }
       if (key === 'destinos') scheduleWeatherUpdate();
+      if (RESUMO_DATE_KEYS.includes(key)) {
+        renderDailyBudgets();
+        renderExpenseDayOptions();
+      }
     });
   });
+  updateResumoDuracao();
   function renderResumo() {
     Object.keys(resumoFieldMap).forEach(key => {
       resumoInputs[key].value = state.resumo[key] || '';
@@ -3110,21 +3167,27 @@
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
 
-  // Dias da viagem (pro teto diário de gastos): do embarque do primeiro voo
-  // ao pouso do último, inferidos das datas estruturadas dos voos — o
-  // roteiro não serve pra isso porque guarda a data como texto livre
+  // Dias da viagem (pro teto diário de gastos): do início ao fim da viagem,
+  // inferidos de QUALQUER data estruturada disponível — as datas dos voos
+  // (origemData/destinoData) E as datas da aba Início (embarque, saída,
+  // chegada, volta). Antes só olhava os voos, então uma viagem sem todos os
+  // trechos com data de ida e volta preenchidos encolhia pra um único dia.
+  // O roteiro não serve pra isso porque guarda a data como texto livre
   // ("25/11", sem ano).
   function getTripDays() {
     let min = null, max = null;
-    state.voos.forEach(v => {
-      [v.origemData, v.destinoData].forEach(ds => {
-        if (!ds) return;
-        const d = new Date(ds + 'T00:00:00');
-        if (isNaN(d)) return;
-        if (!min || d < min) min = d;
-        if (!max || d > max) max = d;
-      });
-    });
+    const consider = (ds) => {
+      if (!ds) return;
+      const d = new Date(ds + 'T00:00:00');
+      if (isNaN(d)) return;
+      if (!min || d < min) min = d;
+      if (!max || d > max) max = d;
+    };
+    state.voos.forEach(v => { consider(v.origemData); consider(v.destinoData); });
+    consider(state.resumo.embarque);
+    consider(state.resumo.saidaData);
+    consider(state.resumo.chegadaData);
+    consider(state.resumo.voltaData);
     if (!min || !max) return [];
     // Sanidade: um typo na data de um voo (ex: ano digitado errado) não pode
     // travar o app tentando gerar centenas de milhares de dias.
@@ -3202,6 +3265,21 @@
     return text.split(/\s+e\s+|\s+and\s+|[+,(]/i)[0].trim();
   }
 
+  // Busca o lugar na API de geocodificação; tenta em português primeiro (a
+  // maioria dos nomes de cidade "traduzidos" só existe nesse idioma ali,
+  // ex: "Nova York") e, se não achar nada, tenta de novo sem restringir
+  // idioma (alguns lugares só têm entrada em inglês/local).
+  async function geocodePlace(name) {
+    for (const lang of ['pt', null]) {
+      const url = 'https://geocoding-api.open-meteo.com/v1/search?name=' + encodeURIComponent(name) + '&count=1' + (lang ? '&language=' + lang : '') + '&format=json';
+      const geoRes = await fetch(url);
+      const geoData = await geoRes.json();
+      const place = geoData.results && geoData.results[0];
+      if (place) return place;
+    }
+    return null;
+  }
+
   async function updateWeatherBadge() {
     const el = document.getElementById('weather-badge');
     if (!el) return;
@@ -3210,10 +3288,11 @@
     lastWeatherDestino = destino;
     if (!destino) { el.style.display = 'none'; el.textContent = ''; return; }
     try {
-      const geoRes = await fetch('https://geocoding-api.open-meteo.com/v1/search?name=' + encodeURIComponent(destino) + '&count=1&language=pt&format=json');
-      const geoData = await geoRes.json();
-      const place = geoData.results && geoData.results[0];
-      if (!place) { el.style.display = 'none'; el.textContent = ''; return; }
+      const place = await geocodePlace(destino);
+      if (!place) {
+        console.warn('[previsão do tempo] lugar não encontrado na geocodificação: "' + destino + '" (campo Destinos: "' + state.resumo.destinos + '")');
+        el.style.display = 'none'; el.textContent = ''; return;
+      }
       const wRes = await fetch('https://api.open-meteo.com/v1/forecast?latitude=' + place.latitude + '&longitude=' + place.longitude + '&current=temperature_2m,weather_code&timezone=auto');
       const wData = await wRes.json();
       const cur = wData.current;
@@ -3227,6 +3306,7 @@
       el.href = 'https://www.google.com/search?q=' + encodeURIComponent('previsão do tempo em ' + destino);
       el.style.display = 'inline-block';
     } catch (e) {
+      console.warn('[previsão do tempo] erro ao buscar', e);
       el.style.display = 'none';
       el.textContent = '';
     }
