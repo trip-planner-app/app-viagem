@@ -534,6 +534,56 @@
     justify-content: flex-end;
     gap: 8px;
   }
+  /* Seletor "Adicionar voo" — mesmo padrão visual do confirm-modal, com uma
+     lista de opções tocáveis em vez de mensagem + botões. */
+  #add-voo-chooser-overlay {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    background: rgba(10,14,26,.55);
+    z-index: 1300;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity .16s ease;
+  }
+  #add-voo-chooser-overlay.open { opacity: 1; visibility: visible; pointer-events: auto; }
+  #add-voo-chooser-box {
+    background: var(--card);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    max-width: 360px;
+    width: 100%;
+    box-shadow: 0 10px 40px rgba(0,0,0,.3);
+    transform: scale(.96) translateY(6px);
+    transition: transform .16s cubic-bezier(.2,.8,.3,1);
+  }
+  #add-voo-chooser-overlay.open #add-voo-chooser-box { transform: none; }
+  #add-voo-chooser-box h3 { margin: 0 0 4px; font-size: var(--fs-lg); color: var(--text); }
+  #add-voo-chooser-box .hint { margin: 0 0 16px; }
+  .add-voo-chooser-options { display: flex; flex-direction: column; gap: 8px; }
+  .add-voo-chooser-opt {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    text-align: left;
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: border-color .15s, transform .1s ease, opacity .1s ease;
+  }
+  .add-voo-chooser-opt:hover { border-color: var(--accent2); }
+  .add-voo-chooser-opt:active { transform: scale(.98); opacity: .85; }
+  .add-voo-chooser-icon { font-size: 22px; flex: none; line-height: 1; }
+  .add-voo-chooser-text { display: flex; flex-direction: column; gap: 2px; }
+  .add-voo-chooser-text strong { font-size: var(--fs-base); color: var(--text); }
+  .add-voo-chooser-text small { font-size: var(--fs-xs); color: var(--muted); line-height: 1.35; }
   /* z-index acima do modal de conta: pode ser aberto a partir de dentro dele. */
   #trips-modal-overlay {
     display: flex;
@@ -745,6 +795,40 @@
   .flight-leg-edit .pt-edit { flex: 1; text-align: center; }
   .flight-leg-edit .pt-edit input.code-input { text-align: center; font-size: var(--fs-xl); font-weight: 800; margin-bottom: 4px; }
   .flight-leg-edit .arrow { color: var(--accent2); font-size: var(--fs-xl); flex: none; padding: 0 4px; }
+
+  /* Card de voo: badge numerado + resumo sempre visível + campos de edição
+     recolhidos por padrão num acordeão (mesmo padrão do teto diário). */
+  .voo-badge {
+    display: inline-block;
+    background: var(--accent2);
+    color: #fff;
+    font-size: var(--fs-sm);
+    font-weight: 800;
+    padding: 4px 12px;
+    border-radius: var(--radius-pill);
+  }
+  .voo-trecho-label { font-size: var(--fs-sm); color: var(--muted); font-weight: 600; margin-left: 8px; }
+  .voo-summary-codigo { text-align: center; font-weight: 700; color: var(--text); font-size: var(--fs-md); margin-top: 2px; }
+  .voo-summary-meta { text-align: center; font-size: var(--fs-sm); color: var(--muted); margin-top: 2px; }
+  .voo-summary-warning { text-align: center; font-size: var(--fs-sm); color: var(--danger); margin-top: 8px; font-weight: 600; }
+  .voo-summary-empty-hint { text-align: center; margin: 4px 0 0; }
+  .voo-fields-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--border);
+    color: var(--accent2);
+    font-size: var(--fs-sm);
+    font-weight: 700;
+  }
+  .voo-fields-chevron { width: 16px; height: 16px; flex: none; transition: transform .15s ease; }
+  .voo-fields-chevron.expanded { transform: rotate(180deg); }
+  .voo-fields-body { display: none; margin-top: 14px; }
+  .voo-fields-body.expanded { display: block; }
 
   /* Buttons / inputs */
   .btn {
@@ -1052,7 +1136,9 @@
     position: fixed;
     inset: 0;
     background: #10131c;
-    z-index: 1000;
+    /* Acima do seletor "Adicionar voo" (1300): a câmera é aberta de dentro
+       dele, e o seletor ainda está no meio do fade-out (.16s) nesse momento. */
+    z-index: 1350;
     flex-direction: column;
   }
   #boarding-pass-overlay.open { display: flex; }
@@ -1291,8 +1377,6 @@
     <div class="page-title-row">
       <div class="page-title">Voos</div>
       <div style="display:flex; gap:8px;">
-        <button class="btn" id="scan-boarding-pass-btn"><svg class="trip-code-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="9" x2="7" y2="15"/><line x1="11" y1="9" x2="11" y2="15"/><line x1="15" y1="9" x2="15" y2="15"/><line x1="18" y1="9" x2="18" y2="15"/></svg> Escanear cartão</button>
-        <button class="btn" id="import-pkpass-btn">📥 Importar do Wallet (.pkpass)</button>
         <input type="file" id="import-pkpass-input" accept=".pkpass,application/vnd.apple.pkpass" style="display:none;">
         <button class="btn" id="open-voos-table-btn">📋 Resumo</button>
         <button class="btn primary" id="add-voo-btn">+ Adicionar voo</button>
@@ -1515,6 +1599,28 @@
   <div id="boarding-pass-body">
     <video id="boarding-pass-video" autoplay muted playsinline></video>
     <p id="boarding-pass-hint">Aponte para o código de barras (PDF417) do cartão de embarque.</p>
+  </div>
+</div>
+
+<div id="add-voo-chooser-overlay">
+  <div id="add-voo-chooser-box">
+    <h3>✈️ Adicionar voo</h3>
+    <p class="hint">Como você quer inserir os dados desse voo?</p>
+    <div class="add-voo-chooser-options">
+      <button class="add-voo-chooser-opt" id="add-voo-chooser-scan" type="button">
+        <span class="add-voo-chooser-icon">📷</span>
+        <span class="add-voo-chooser-text"><strong>Escanear cartão</strong><small>Aponta a câmera para o código de barras do cartão de embarque</small></span>
+      </button>
+      <button class="add-voo-chooser-opt" id="add-voo-chooser-pkpass" type="button">
+        <span class="add-voo-chooser-icon">📥</span>
+        <span class="add-voo-chooser-text"><strong>Importar do Wallet</strong><small>Arquivo .pkpass salvo no Apple Wallet</small></span>
+      </button>
+      <button class="add-voo-chooser-opt" id="add-voo-chooser-manual" type="button">
+        <span class="add-voo-chooser-icon">✏️</span>
+        <span class="add-voo-chooser-text"><strong>Preencher manualmente</strong><small>Digite os dados do voo você mesmo</small></span>
+      </button>
+    </div>
+    <button class="btn" id="add-voo-chooser-cancel" style="margin-top:14px; width:100%;">Cancelar</button>
   </div>
 </div>
 
@@ -3216,62 +3322,106 @@
 
   // ---------- Voos (editável, lista dinâmica) ----------
   const voosListEl = document.getElementById('voos-list');
-  const vooFieldDefs = [
-    ['trecho', 'Nome do trecho', 'Ex: Trecho 1'],
-    ['codigo', 'Companhia / nº do voo', 'Ex: AA 964']
-  ];
+
+  // Campos que faltam (usado tanto pro aviso no resumo quanto pra decidir se
+  // o card já nasce aberto no acordeão, cutucando o usuário a completar).
+  function vooMissingFields(voo) {
+    const missing = [];
+    if (!voo.origem) missing.push('origem');
+    if (!voo.destino) missing.push('destino');
+    if (!voo.origemData) missing.push('data de partida');
+    if (!voo.origemHora) missing.push('hora de partida');
+    if (!voo.destinoData) missing.push('data de chegada');
+    if (!voo.destinoHora) missing.push('hora de chegada');
+    return missing;
+  }
+  function vooHasAnyData(voo) {
+    return !!(voo.origem || voo.destino || voo.codigo || voo.origemData || voo.trecho);
+  }
+  // Guarda só a decisão explícita do usuário de abrir/fechar o acordeão de
+  // cada voo (em memória, não precisa sobreviver a um reload). Sem escolha
+  // explícita, o card nasce aberto se tiver campo faltando (pra já pedir
+  // pra completar) e fechado se já estiver tudo preenchido.
+  const vooExpandOverride = new Map();
+  function isVooFieldsExpanded(voo) {
+    if (vooExpandOverride.has(voo.id)) return vooExpandOverride.get(voo.id);
+    return vooMissingFields(voo).length > 0;
+  }
+
   function renderVoos() {
     voosListEl.innerHTML = '';
     state.voos.forEach((voo, idx) => {
       const card = document.createElement('div');
-      card.className = 'card editable-card';
+      card.className = 'card editable-card voo-card';
+      const hasData = vooHasAnyData(voo);
+      const missing = vooMissingFields(voo);
+      const expanded = isVooFieldsExpanded(voo);
+      const trechoLabel = (voo.trecho && voo.trecho !== 'Trecho ' + (idx + 1)) ? `<span class="voo-trecho-label">${escapeHtml(voo.trecho)}</span>` : '';
+
       card.innerHTML = `
         <div class="top-row">
-          <span class="idx-label">Voo ${idx + 1}</span>
-          <button class="btn danger small" data-action="del-voo">Remover</button>
+          <span class="voo-badge">Voo ${idx + 1}</span>${trechoLabel}
+          <button class="btn danger small" data-action="del-voo" style="margin-left:auto;">Remover</button>
         </div>
-        <div class="field-row">
-          <div class="field">
-            <label class="field-label">Trecho</label>
-            <input type="text" data-field="trecho" value="${escapeAttr(voo.trecho)}" placeholder="Ex: Trecho 1">
+        ${hasData ? `
+        <div class="voo-summary">
+          <div class="flight-leg">
+            <div class="pt"><div class="code">${escapeHtml(voo.origem) || '—'}</div><div class="time">${escapeHtml(fmtVooDateTime(voo.origemData, voo.origemHora)) || 'sem data/hora'}</div></div>
+            <div class="arrow">✈</div>
+            <div class="pt"><div class="code">${escapeHtml(voo.destino) || '—'}</div><div class="time">${escapeHtml(fmtVooDateTime(voo.destinoData, voo.destinoHora)) || 'sem data/hora'}</div></div>
           </div>
-          <div class="field">
-            <label class="field-label">Companhia / nº do voo</label>
-            <input type="text" data-field="codigo" value="${escapeAttr(voo.codigo)}" placeholder="Ex: AA 964">
-          </div>
+          ${voo.codigo ? `<div class="voo-summary-codigo">${escapeHtml(voo.codigo)}</div>` : ''}
+          ${voo.meta ? `<div class="voo-summary-meta">${escapeHtml(voo.meta)}</div>` : ''}
+          ${missing.length ? `<div class="voo-summary-warning">⚠️ Falta preencher: ${escapeHtml(missing.join(', '))}</div>` : ''}
+        </div>` : `<p class="hint voo-summary-empty-hint">Preencha os campos abaixo ou anexe/importe o cartão de embarque.</p>`}
+        <div class="voo-fields-toggle" data-action="toggle-fields">
+          <span class="voo-fields-toggle-label">${expanded ? 'Recolher' : 'Editar dados do voo'}</span>
+          <svg class="voo-fields-chevron${expanded ? ' expanded' : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
-        <div class="flight-leg-edit">
-          <div class="pt-edit">
-            <input type="text" class="code-input" data-field="origem" value="${escapeAttr(voo.origem)}" placeholder="GIG">
+        <div class="voo-fields-body${expanded ? ' expanded' : ''}">
+          <div class="field-row">
+            <div class="field">
+              <label class="field-label">Trecho</label>
+              <input type="text" data-field="trecho" value="${escapeAttr(voo.trecho)}" placeholder="Ex: Trecho 1">
+            </div>
+            <div class="field">
+              <label class="field-label">Companhia / nº do voo</label>
+              <input type="text" data-field="codigo" value="${escapeAttr(voo.codigo)}" placeholder="Ex: AA 964">
+            </div>
           </div>
-          <div class="arrow">✈</div>
-          <div class="pt-edit">
-            <input type="text" class="code-input" data-field="destino" value="${escapeAttr(voo.destino)}" placeholder="MIA">
+          <div class="flight-leg-edit">
+            <div class="pt-edit">
+              <input type="text" class="code-input" data-field="origem" value="${escapeAttr(voo.origem)}" placeholder="GIG">
+            </div>
+            <div class="arrow">✈</div>
+            <div class="pt-edit">
+              <input type="text" class="code-input" data-field="destino" value="${escapeAttr(voo.destino)}" placeholder="MIA">
+            </div>
           </div>
-        </div>
-        <div class="field-row" style="margin-top:8px;">
-          <div class="field">
-            <label class="field-label">Data de partida</label>
-            <input type="date" data-field="origemData" value="${escapeAttr(voo.origemData)}">
+          <div class="field-row" style="margin-top:8px;">
+            <div class="field">
+              <label class="field-label">Data de partida</label>
+              <input type="date" data-field="origemData" value="${escapeAttr(voo.origemData)}">
+            </div>
+            <div class="field">
+              <label class="field-label">Hora de partida</label>
+              <input type="time" data-field="origemHora" value="${escapeAttr(voo.origemHora)}">
+            </div>
           </div>
-          <div class="field">
-            <label class="field-label">Hora de partida</label>
-            <input type="time" data-field="origemHora" value="${escapeAttr(voo.origemHora)}">
+          <div class="field-row">
+            <div class="field">
+              <label class="field-label">Data de chegada</label>
+              <input type="date" data-field="destinoData" value="${escapeAttr(voo.destinoData)}">
+            </div>
+            <div class="field">
+              <label class="field-label">Hora de chegada</label>
+              <input type="time" data-field="destinoHora" value="${escapeAttr(voo.destinoHora)}">
+            </div>
           </div>
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label class="field-label">Data de chegada</label>
-            <input type="date" data-field="destinoData" value="${escapeAttr(voo.destinoData)}">
+          <div class="field" style="margin-top:10px;">
+            <label class="field-label">Observações (companhia, tipo de conexão etc.)</label>
+            <input type="text" data-field="meta" value="${escapeAttr(voo.meta)}" placeholder="Ex: American Airlines · overnight">
           </div>
-          <div class="field">
-            <label class="field-label">Hora de chegada</label>
-            <input type="time" data-field="destinoHora" value="${escapeAttr(voo.destinoHora)}">
-          </div>
-        </div>
-        <div class="field" style="margin-top:10px;">
-          <label class="field-label">Observações (companhia, tipo de conexão etc.)</label>
-          <input type="text" data-field="meta" value="${escapeAttr(voo.meta)}" placeholder="Ex: American Airlines · overnight">
         </div>
         <div class="attach-zone"></div>
       `;
@@ -3286,11 +3436,22 @@
           }
         });
       });
+      card.querySelector('[data-action="toggle-fields"]').addEventListener('click', () => {
+        const fieldsBody = card.querySelector('.voo-fields-body');
+        const chevron = card.querySelector('.voo-fields-chevron');
+        const label = card.querySelector('.voo-fields-toggle-label');
+        const newExpanded = !fieldsBody.classList.contains('expanded');
+        vooExpandOverride.set(voo.id, newExpanded);
+        fieldsBody.classList.toggle('expanded', newExpanded);
+        chevron.classList.toggle('expanded', newExpanded);
+        label.textContent = newExpanded ? 'Recolher' : 'Editar dados do voo';
+      });
       card.querySelector('[data-action="del-voo"]').addEventListener('click', async () => {
         if (await customConfirm('Remover este voo?')) {
           const atts = state.attachments[voo.id] || [];
           for (const a of atts) { await deleteFileEverywhere(a.fileKey); }
           delete state.attachments[voo.id];
+          vooExpandOverride.delete(voo.id);
           state.voos.splice(idx, 1);
           saveState();
           renderVoos();
@@ -3303,10 +3464,29 @@
     });
     updateTripAlerts();
   }
-  document.getElementById('add-voo-btn').addEventListener('click', () => {
+
+  // ---------- Seletor "Adicionar voo" (escanear / importar .pkpass / manual) ----------
+  const addVooChooserOverlay = document.getElementById('add-voo-chooser-overlay');
+  function openAddVooChooser() { addVooChooserOverlay.classList.add('open'); }
+  function closeAddVooChooser() { addVooChooserOverlay.classList.remove('open'); }
+  function addManualVoo() {
     state.voos.push({ id: 'voo_' + uid(), trecho: '', codigo: '', origem: '', origemData: '', origemHora: '', destino: '', destinoData: '', destinoHora: '', meta: '' });
     saveState();
     renderVoos();
+  }
+  document.getElementById('add-voo-btn').addEventListener('click', openAddVooChooser);
+  document.getElementById('add-voo-chooser-cancel').addEventListener('click', closeAddVooChooser);
+  document.getElementById('add-voo-chooser-manual').addEventListener('click', () => {
+    closeAddVooChooser();
+    addManualVoo();
+  });
+  document.getElementById('add-voo-chooser-scan').addEventListener('click', () => {
+    closeAddVooChooser();
+    startBoardingPassScan();
+  });
+  document.getElementById('add-voo-chooser-pkpass').addEventListener('click', () => {
+    closeAddVooChooser();
+    document.getElementById('import-pkpass-input').click();
   });
   renderVoos();
 
@@ -3367,7 +3547,7 @@
     renderExpenseDayOptions();
   }
 
-  document.getElementById('scan-boarding-pass-btn').addEventListener('click', async () => {
+  async function startBoardingPassScan() {
     const overlay = document.getElementById('boarding-pass-overlay');
     const video = document.getElementById('boarding-pass-video');
     overlay.classList.add('open');
@@ -3393,7 +3573,7 @@
       alert('Não foi possível acessar a câmera. Verifique as permissões do navegador.');
       closeBoardingPassScanner();
     }
-  });
+  }
 
   document.getElementById('boarding-pass-cancel-btn').addEventListener('click', closeBoardingPassScanner);
 
@@ -3464,9 +3644,6 @@
     };
   }
 
-  document.getElementById('import-pkpass-btn').addEventListener('click', () => {
-    document.getElementById('import-pkpass-input').click();
-  });
   document.getElementById('import-pkpass-input').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     e.target.value = '';
@@ -3870,8 +4047,9 @@
       return;
     }
     let rows = '';
-    state.voos.forEach((voo) => {
+    state.voos.forEach((voo, idx) => {
       rows += `<tr>
+        <td><strong>${idx + 1}</strong></td>
         <td>${escapeHtml(voo.trecho)}</td>
         <td>${escapeHtml(voo.codigo)}</td>
         <td><strong>${escapeHtml(voo.origem)}</strong><br>${escapeHtml(fmtVooDateTime(voo.origemData, voo.origemHora))}</td>
@@ -3883,6 +4061,7 @@
       <table>
         <thead>
           <tr>
+            <th>#</th>
             <th>Trecho</th>
             <th>Voo</th>
             <th>Origem</th>
