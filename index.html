@@ -892,6 +892,7 @@
   .hero-photo-btn:active,
   .settings-row:active,
   .dash-row:active,
+  .day-head:active,
   .dash-tile:active,
   .more-sheet-item:active,
   .account-modal-close-x:active {
@@ -972,28 +973,57 @@
   .traveler-chip.active { background: var(--accent2); color: #fff; border-color: var(--accent2); }
   .traveler-chip .rm { opacity: .6; font-weight: 700; }
 
-  /* Roteiro editable */
-  .day-card { border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; margin-bottom: 14px; background: var(--card2); }
-  .day-card .top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-  .day-card .top-row .day-idx { font-size: var(--fs-sm); color: var(--accent2); font-weight: 800; }
-  .activity-card {
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 12px;
-    margin-top: 10px;
-    background: var(--card);
+  /* Roteiro: um dia por linha (recolhido) e, dentro do dia, uma linha do
+     tempo das atividades em ordem de horário. */
+  .day-card { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--card); margin-bottom: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(30,40,70,.05); }
+  .day-card.is-today { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .day-card.is-past { background: var(--card2); box-shadow: none; }
+  .day-head { display: flex; align-items: center; gap: 12px; width: 100%; background: none; border: none; padding: 14px 16px; text-align: left; cursor: pointer; font-family: inherit; color: var(--text); }
+  .day-num { flex: none; background: var(--accent2); color: #fff; font-size: var(--fs-xs); font-weight: 800; padding: 4px 10px; border-radius: var(--radius-pill); }
+  .day-card.is-past .day-num { background: var(--muted); }
+  .day-info { flex: 1; min-width: 0; }
+  .day-date { display: block; font-size: var(--fs-md); font-weight: 700; }
+  .day-date.empty { color: var(--muted); }
+  .day-sub { display: block; font-size: var(--fs-sm); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .day-body { padding: 0 16px 14px; border-top: 1px dashed var(--border); }
+  .day-tools { display: flex; justify-content: space-between; align-items: center; padding: 10px 0 4px; }
+  .link-btn.danger { color: var(--danger); }
+  .day-edit { padding: 8px 0 2px; }
+  .timeline { margin: 10px 0 6px; }
+  .tl-item { display: grid; grid-template-columns: 44px 14px minmax(0, 1fr); column-gap: 8px; }
+  .tl-time { font-size: var(--fs-sm); font-weight: 800; color: var(--text); text-align: right; line-height: 1.4; }
+  .tl-time.empty { color: var(--muted); font-weight: 600; }
+  .tl-dot { position: relative; }
+  .tl-dot::before { content: ''; position: absolute; left: 3px; top: 5px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent2); }
+  .tl-dot::after { content: ''; position: absolute; left: 6px; top: 17px; bottom: 2px; width: 2px; background: var(--border); }
+  .tl-item:last-child .tl-dot::after { display: none; }
+  .tl-content { padding-bottom: 16px; }
+  .tl-title { font-size: var(--fs-md); font-weight: 700; color: var(--text); line-height: 1.4; }
+  .tl-title.empty { color: var(--muted); }
+  .tl-meta { font-size: var(--fs-sm); color: var(--muted); }
+  .tl-meta a { color: var(--accent2); font-weight: 600; text-decoration: none; }
+  .tl-desc { font-size: var(--fs-sm); color: var(--text); margin-top: 3px; white-space: pre-line; }
+  .tl-actions { display: flex; gap: 12px; align-items: center; margin-top: 6px; flex-wrap: wrap; }
+  .tl-actions .btn { display: inline-flex; align-items: center; gap: 5px; }
+  .tl-actions .btn svg { width: 14px; height: 14px; flex: none; }
+  .tl-distance { font-size: var(--fs-xs); color: var(--muted); margin-top: 6px; font-style: italic; }
+  /* Em edição, o formulário ocupa a largura toda (ao lado da linha do tempo
+     os campos ficavam apertados no celular). */
+  .tl-item.editing { grid-template-columns: minmax(0, 1fr); }
+  .tl-item.editing .tl-time, .tl-item.editing .tl-dot { display: none; }
+  .tl-item.editing .tl-content { padding-bottom: 12px; }
+  .tl-item.flash-highlight { border-radius: var(--radius-sm); }
+  .tl-edit { background: var(--card2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px; margin-top: 2px; }
+  .tl-edit-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+  .roteiro-search-toggle {
+    display: flex; align-items: center; gap: 8px; width: 100%;
+    background: none; border: none; padding: 0; cursor: pointer;
+    font-family: inherit; font-size: var(--fs-md); font-weight: 700; color: var(--text); text-align: left;
   }
-  .activity-card .top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-  .activity-card .act-idx { font-size: var(--fs-xs); color: var(--accent); font-weight: 800; }
-  .distance-note {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 8px;
-    font-size: var(--fs-sm);
-    color: var(--muted);
-  }
-  .distance-note input { width: auto; flex: none; max-width: 140px; }
+  .roteiro-search-toggle .trip-code-icon { width: 16px; height: 16px; color: var(--accent2); }
+  .roteiro-search-toggle .voo-fields-chevron { margin-left: auto; color: var(--muted); }
+  .roteiro-search-body { margin-top: 12px; }
+  .roteiro-search-body[hidden] { display: none; }
 
   /* Checklist */
   ul.checklist { list-style: none; margin: 0; padding: 0; }
@@ -1299,37 +1329,6 @@
   }
   #boarding-pass-hint { color: rgba(255,255,255,.7); font-size: var(--fs-sm); text-align: center; margin: 0; }
 
-  .table-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: #10131c;
-    z-index: 1000;
-    flex-direction: column;
-  }
-  .table-overlay.open { display: flex; }
-  .table-overlay-header {
-    flex: none;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
-    background: #131b2e;
-    color: #f2f4fb;
-    font-size: var(--fs-base);
-    font-weight: 700;
-    border-bottom: 1px solid rgba(255,255,255,.1);
-  }
-  .table-overlay-body {
-    flex: 1;
-    overflow: auto;
-    padding: 14px;
-    background: var(--card);
-  }
-  .table-overlay-body table { width: 100%; border-collapse: collapse; font-size: var(--fs-base); background: var(--card); color: var(--text); }
-  .table-overlay-body th, .table-overlay-body td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
-  .table-overlay-body th { background: var(--card2); font-weight: 700; position: sticky; top: 0; }
 
   /* ---------------- Exportar/imprimir viagem ---------------- */
   /* #print-export só existe pra virar a folha impressa: fica escondido na
@@ -1530,31 +1529,30 @@
   <div class="tab" id="roteiro">
     <div class="page-title-row">
       <div class="page-title">Roteiro</div>
-      <button class="btn" id="open-roteiro-table-btn">📋 Ver tabela resumo</button>
-    </div>
-    <div class="card">
-      <h3><svg class="trip-code-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Sugestões de roteiro</h3>
-      <p class="hint" style="margin:0 0 10px;">Preencha os dados da viagem e busque roteiros prontos em sites especializados.</p>
-      <div class="field">
-        <label class="field-label">Destino(s)</label>
-        <input type="text" id="roteiro-search-destino" placeholder="Ex: Orlando, Miami Beach">
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label class="field-label">Dias</label>
-          <input type="number" id="roteiro-search-dias" min="1" placeholder="Ex: 8">
-        </div>
-        <div class="field">
-          <label class="field-label">Viajantes</label>
-          <input type="number" id="roteiro-search-viajantes" min="1" placeholder="Ex: 2">
-        </div>
-      </div>
-      <button class="btn accent2" id="roteiro-search-btn">Buscar roteiros</button>
-    </div>
-    <div class="card">
       <button class="btn primary" id="add-day-btn">+ Adicionar dia</button>
     </div>
     <div id="roteiro-list"></div>
+    <div class="card">
+      <button type="button" class="roteiro-search-toggle" id="roteiro-search-toggle"><svg class="trip-code-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Buscar ideias de roteiro<svg class="voo-fields-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+      <div class="roteiro-search-body" id="roteiro-search-body" hidden>
+        <p class="hint" style="margin:0 0 10px;">Abre roteiros prontos de sites especializados em novas abas do navegador.</p>
+        <div class="field">
+          <label class="field-label">Destino(s)</label>
+          <input type="text" id="roteiro-search-destino" placeholder="Ex: Orlando, Miami Beach">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label">Dias</label>
+            <input type="number" id="roteiro-search-dias" min="1" placeholder="Ex: 8">
+          </div>
+          <div class="field">
+            <label class="field-label">Viajantes</label>
+            <input type="number" id="roteiro-search-viajantes" min="1" placeholder="Ex: 2">
+          </div>
+        </div>
+        <button class="btn accent2" id="roteiro-search-btn">Buscar roteiros</button>
+      </div>
+    </div>
   </div>
 
   <!-- CHECKLIST -->
@@ -1783,14 +1781,6 @@
     </div>
     <button class="btn" id="add-voo-chooser-cancel" style="margin-top:14px; width:100%;">Cancelar</button>
   </div>
-</div>
-
-<div id="roteiro-table-overlay" class="table-overlay">
-  <div class="table-overlay-header">
-    <span>📋 Roteiro resumido</span>
-    <button class="btn primary" id="roteiro-table-close">✕ Fechar</button>
-  </div>
-  <div id="roteiro-table-body" class="table-overlay-body"></div>
 </div>
 
 <div id="confirm-modal-overlay">
@@ -2858,10 +2848,10 @@
 
     html += '<h2>🗺️ Roteiro</h2>';
     html += state.roteiro.length
-      ? state.roteiro.map(d => `
+      ? sortedRoteiroDays().map(d => `
         <div class="pe-day">
           <div class="pe-day-title">${escapeHtml(roteiroDayDateLabel(d))}${d.tag ? ' · ' + escapeHtml(d.tag) : ''}</div>
-          ${(d.atividades || []).map(a => `<div class="pe-item">${a.hora ? escapeHtml(a.hora) + ' · ' : ''}<span class="pe-title">${escapeHtml(a.titulo || '')}</span>${a.local ? ' (' + escapeHtml(a.local) + ')' : ''}${a.descricao ? ' — ' + escapeHtml(a.descricao) : ''}${a.reserva ? ' · Reserva: ' + escapeHtml(a.reserva) : ''}</div>`).join('') || '<div class="pe-empty">Sem atividades neste dia.</div>'}
+          ${sortedDayActivities(d).map(a => `<div class="pe-item">${a.hora ? escapeHtml(a.hora) + ' · ' : ''}<span class="pe-title">${escapeHtml(a.titulo || '')}</span>${a.local ? ' (' + escapeHtml(a.local) + ')' : ''}${a.descricao ? ' — ' + escapeHtml(a.descricao) : ''}${a.reserva ? ' · Reserva: ' + escapeHtml(a.reserva) : ''}</div>`).join('') || '<div class="pe-empty">Sem atividades neste dia.</div>'}
         </div>`).join('')
       : '<div class="pe-empty">Nenhum dia no roteiro ainda.</div>';
 
@@ -3301,6 +3291,10 @@
   // rápido nele — o painel abre o resultado, não um cadastro novo.
   function goToItem(tab, id) {
     if (tab === 'hoteis' && state.hoteis.some(h => h.id === id && hotelStatus(h) === 'done')) hotelDoneExpanded = true;
+    if (tab === 'roteiro') {
+      const found = findRoteiroActivity(id);
+      if (found) { roteiroDayExpand.set(found.day.id, true); renderRoteiro(); }
+    }
     showTab(tab);
     if (!id) return;
     const el = document.querySelector('#' + tab + ' [data-item-id="' + CSS.escape(id) + '"]');
@@ -3345,6 +3339,7 @@
       let day = state.roteiro.find(d => d.dataISO === today);
       if (day) day.atividades.push(act);
       else state.roteiro.push({ id: uid(), data: '', dataISO: getTripDays().includes(today) ? today : '', tag: '', atividades: [act] });
+      roteiroActEditOpen.add(act.id);
       saveState();
       renderRoteiro();
       goToItem('roteiro', act.id);
@@ -4646,141 +4641,264 @@
   renderDocTravelerChips();
   renderDocs();
 
-  // ---------- Roteiro (dias com múltiplas atividades editáveis) ----------
+  // ---------- Roteiro (um dia por linha + linha do tempo por horário) ----------
   const roteiroList = document.getElementById('roteiro-list');
 
   function roteiroDayDateLabel(day) {
     return day.dataISO ? fmtVooDateTime(day.dataISO, '') : (day.data || '');
   }
 
+  // Dias em ordem de data (sem data vão pro fim, na ordem em que foram
+  // criados); atividades em ordem de horário (sem horário primeiro — valem o
+  // dia todo — mantendo a ordem de criação entre elas).
+  function sortedRoteiroDays() {
+    return state.roteiro.slice().sort((a, b) => (a.dataISO || '9999').localeCompare(b.dataISO || '9999'));
+  }
+  function sortedDayActivities(day) {
+    return (day.atividades || []).slice().sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
+  }
+
+  function fmtWeekdayDate(iso) {
+    return ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][new Date(iso + 'T00:00:00').getDay()] + ', ' + fmtDayMonth(iso);
+  }
+
+  function roteiroDayStatus(day) {
+    if (!day.dataISO) return '';
+    const today = localDateStr();
+    return day.dataISO === today ? 'today' : day.dataISO < today ? 'past' : '';
+  }
+
+  // Estado de UI (não sincroniza): dias abertos, dias com data/tag em edição
+  // e atividades em edição.
+  const roteiroDayExpand = new Map();
+  const roteiroDayEditOpen = new Set();
+  const roteiroActEditOpen = new Set();
+
+  function isRoteiroDayExpanded(day) {
+    if (roteiroDayExpand.has(day.id)) return roteiroDayExpand.get(day.id);
+    return roteiroDayStatus(day) === 'today' || !(day.atividades || []).some(a => a.titulo);
+  }
+
+  function findRoteiroDay(id) { return state.roteiro.find(d => d.id === id); }
+  function findRoteiroActivity(id) {
+    for (const day of state.roteiro) {
+      const act = (day.atividades || []).find(a => a.id === id);
+      if (act) return { day, act };
+    }
+    return null;
+  }
+
+  function activityHtml(act) {
+    const editing = roteiroActEditOpen.has(act.id) || !act.titulo;
+    const hasAttach = (state.attachments['act_' + act.id] || []).length > 0;
+    const mapsUrl = 'https://maps.apple.com/?q=' + encodeURIComponent(act.local || '');
+    return `
+      <div class="tl-item${editing ? ' editing' : ''}" data-item-id="${escapeAttr(act.id)}">
+        <div class="tl-time${act.hora ? '' : ' empty'}">${escapeHtml(act.hora) || '—'}</div>
+        <div class="tl-dot"></div>
+        <div class="tl-content">
+          ${editing ? `
+          <div class="tl-edit">
+            <div class="field-row">
+              <div class="field">
+                <label class="field-label">Horário</label>
+                <input type="time" data-field="hora" value="${escapeAttr(act.hora)}">
+              </div>
+              <div class="field">
+                <label class="field-label">Título</label>
+                <input type="text" data-field="titulo" value="${escapeAttr(act.titulo)}" placeholder="Ex: Magic Kingdom">
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label class="field-label">Local</label>
+                <input type="text" data-field="local" value="${escapeAttr(act.local)}" placeholder="Ex: Orlando, FL">
+              </div>
+              <div class="field">
+                <label class="field-label">Reserva / ingresso</label>
+                <input type="text" data-field="reserva" value="${escapeAttr(act.reserva)}" placeholder="Nº da reserva">
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label">Observações</label>
+              <textarea data-field="descricao" placeholder="Detalhes, horários, ingressos...">${escapeHtml(act.descricao)}</textarea>
+            </div>
+            <div class="field">
+              <label class="field-label">Distância até a próxima atividade</label>
+              <input type="text" data-field="distancia" value="${escapeAttr(act.distancia)}" placeholder="Ex: 12 km / 20 min">
+            </div>
+            <div class="attach-zone-act"></div>
+            <div class="tl-edit-actions">
+              <button type="button" class="link-btn danger" data-action="del-act">Remover atividade</button>
+              <button type="button" class="btn small primary" data-action="done-act">Concluir</button>
+            </div>
+          </div>` : `
+          <div class="tl-title">${escapeHtml(act.titulo)}</div>
+          ${act.local ? `<div class="tl-meta"><a href="${escapeAttr(mapsUrl)}" target="_blank" rel="noopener">${escapeHtml(act.local)}</a></div>` : ''}
+          ${act.reserva ? `<div class="tl-meta">Reserva: ${escapeHtml(act.reserva)}</div>` : ''}
+          ${act.descricao ? `<div class="tl-desc">${escapeHtml(act.descricao)}</div>` : ''}
+          <div class="tl-actions">
+            ${hasAttach ? `<button type="button" class="btn small" data-action="open-act-file">${dashIcon('documentos')}Ingresso / arquivo</button>` : ''}
+            <button type="button" class="link-btn" data-action="edit-act">Editar</button>
+          </div>
+          ${act.distancia ? `<div class="tl-distance">${escapeHtml(act.distancia)} até a próxima</div>` : ''}`}
+        </div>
+      </div>`;
+  }
+
   function renderRoteiro() {
     roteiroList.innerHTML = '';
-    state.roteiro.forEach((day, dayIdx) => {
+    if (!state.roteiro.length) {
+      roteiroList.innerHTML = '<div class="card"><p class="hint" style="margin:0;">Nenhum dia no roteiro ainda. Toque em "+ Adicionar dia" para começar — cada dia ganha sua lista de atividades em ordem de horário.</p></div>';
+      return;
+    }
+    sortedRoteiroDays().forEach((day, idx) => {
+      const status = roteiroDayStatus(day);
+      const expanded = isRoteiroDayExpanded(day);
+      const acts = sortedDayActivities(day);
+      const nActs = acts.filter(a => a.titulo).length;
+      const dateLabel = day.dataISO ? fmtWeekdayDate(day.dataISO) : (day.data || 'Sem data');
+      const sub = [day.tag, nActs ? plural(nActs, 'atividade', 'atividades') : 'Nenhuma atividade ainda'].filter(Boolean).join(' · ');
+      const editDay = roteiroDayEditOpen.has(day.id) || !day.dataISO;
       const card = document.createElement('div');
-      card.className = 'day-card';
-
-      const header = document.createElement('div');
-      header.className = 'top-row';
-      header.innerHTML = `
-        <span class="day-idx">Dia ${dayIdx + 1}</span>
-        <button class="btn danger small" data-action="del-day">Remover dia</button>`;
-      header.querySelector('[data-action="del-day"]').addEventListener('click', async () => {
-        if (await customConfirm('Remover este dia e todas as atividades?')) {
-          for (const act of day.atividades) {
-            const key = 'act_' + act.id;
-            const atts = state.attachments[key] || [];
-            for (const a of atts) { await deleteFileEverywhere(a.fileKey); }
-            delete state.attachments[key];
-          }
-          state.roteiro.splice(dayIdx, 1);
-          saveState();
-          renderRoteiro();
-        }
-      });
-      card.appendChild(header);
-
-      const fieldsRow = document.createElement('div');
-      fieldsRow.className = 'field-row';
-      fieldsRow.innerHTML = `
-        <div class="field">
-          <label class="field-label">Data</label>
-          <input type="date" data-field="dataISO" value="${escapeAttr(day.dataISO)}">
-        </div>
-        <div class="field">
-          <label class="field-label">Tag do dia</label>
-          <input type="text" data-field="tag" value="${escapeAttr(day.tag)}" placeholder="Ex: Parque">
-        </div>`;
-      const legacyHint = legacyDateHint(day.dataISO, day.data);
-      fieldsRow.querySelectorAll('[data-field]').forEach(inputEl => {
-        inputEl.addEventListener('input', () => {
-          day[inputEl.dataset.field] = inputEl.value;
-          saveState();
-        });
-      });
-      card.appendChild(fieldsRow);
-      if (legacyHint) card.insertAdjacentHTML('beforeend', legacyHint);
-
-      const actsWrap = document.createElement('div');
-      day.atividades.forEach((act, actIdx) => {
-        const actCard = document.createElement('div');
-        actCard.className = 'activity-card';
-        actCard.dataset.itemId = act.id;
-        actCard.innerHTML = `
-          <div class="top-row">
-            <span class="act-idx">Atividade ${actIdx + 1}</span>
-            <button class="btn danger small" data-action="del-act">Remover</button>
+      card.className = 'day-card' + (status === 'today' ? ' is-today' : status === 'past' ? ' is-past' : '');
+      card.dataset.dayId = day.id;
+      card.innerHTML = `
+        <button type="button" class="day-head" data-action="toggle-day">
+          <span class="day-num">Dia ${idx + 1}</span>
+          <span class="day-info">
+            <span class="day-date${day.dataISO ? '' : ' empty'}">${escapeHtml(dateLabel)}</span>
+            <span class="day-sub">${escapeHtml(sub)}</span>
+          </span>
+          ${status === 'today' ? '<span class="status-pill now">Hoje</span>' : ''}
+          <svg class="voo-fields-chevron${expanded ? ' expanded' : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        ${expanded ? `
+        <div class="day-body">
+          <div class="day-tools">
+            <button type="button" class="link-btn" data-action="edit-day">${editDay ? 'Fechar edição do dia' : 'Editar data e tag'}</button>
+            <button type="button" class="link-btn danger" data-action="del-day">Remover dia</button>
           </div>
-          <div class="field-row">
-            <div class="field">
-              <label class="field-label">Horário</label>
-              <input type="time" data-field="hora" value="${escapeAttr(act.hora)}">
+          ${editDay ? `
+          <div class="day-edit">
+            <div class="field-row">
+              <div class="field">
+                <label class="field-label">Data</label>
+                <input type="date" data-day-field="dataISO" value="${escapeAttr(day.dataISO)}">
+              </div>
+              <div class="field">
+                <label class="field-label">Tag do dia</label>
+                <input type="text" data-day-field="tag" value="${escapeAttr(day.tag)}" placeholder="Ex: Parque">
+              </div>
             </div>
-            <div class="field">
-              <label class="field-label">Título</label>
-              <input type="text" data-field="titulo" value="${escapeAttr(act.titulo)}" placeholder="Ex: Magic Kingdom">
-            </div>
-          </div>
-          <div class="field-row">
-            <div class="field">
-              <label class="field-label">Local</label>
-              <input type="text" data-field="local" value="${escapeAttr(act.local)}" placeholder="Ex: Orlando, FL">
-            </div>
-            <div class="field">
-              <label class="field-label">Reserva / ingresso</label>
-              <input type="text" data-field="reserva" value="${escapeAttr(act.reserva)}" placeholder="Nº da reserva">
-            </div>
-          </div>
-          <div class="field">
-            <label class="field-label">Descrição</label>
-            <textarea data-field="descricao" placeholder="Detalhes, horários, ingressos...">${escapeHtml(act.descricao)}</textarea>
-          </div>
-          <div class="attach-zone-act"></div>
-          <div class="distance-note">
-            🚗 Distância até a próxima atividade:
-            <input type="text" data-field="distancia" value="${escapeAttr(act.distancia)}" placeholder="Ex: 12 km / 20 min">
-          </div>
-        `;
-        actCard.querySelectorAll('[data-field]').forEach(inputEl => {
-          inputEl.addEventListener('input', () => {
-            act[inputEl.dataset.field] = inputEl.value;
-            saveState();
-          });
-        });
-        actCard.querySelector('[data-action="del-act"]').addEventListener('click', async () => {
-          if (day.atividades.length <= 1) { alert('Cada dia precisa ter ao menos 1 atividade. Remova o dia se não for mais necessário.'); return; }
-          const key = 'act_' + act.id;
-          const atts = state.attachments[key] || [];
-          for (const a of atts) { await deleteFileEverywhere(a.fileKey); }
-          delete state.attachments[key];
-          day.atividades.splice(actIdx, 1);
-          saveState();
-          renderRoteiro();
-        });
-        const attachZone = actCard.querySelector('.attach-zone-act');
-        setupAttachZone('act_' + act.id, attachZone, '+ Anexar arquivo (ingresso/show)');
-        actsWrap.appendChild(actCard);
+            ${legacyDateHint(day.dataISO, day.data)}
+          </div>` : ''}
+          <div class="timeline">${acts.map(activityHtml).join('')}</div>
+          <button type="button" class="btn small" data-action="add-act">+ Adicionar atividade</button>
+        </div>` : ''}
+      `;
+      card.querySelectorAll('.tl-item').forEach(itemEl => {
+        const zone = itemEl.querySelector('.attach-zone-act');
+        if (zone) setupAttachZone('act_' + itemEl.dataset.itemId, zone, '+ Anexar ingresso ou arquivo');
       });
-      card.appendChild(actsWrap);
-
-      const addActBtn = document.createElement('button');
-      addActBtn.className = 'btn small';
-      addActBtn.style.marginTop = '10px';
-      addActBtn.textContent = '+ Adicionar atividade a este dia';
-      addActBtn.addEventListener('click', () => {
-        day.atividades.push({ id: uid(), hora: '', titulo: '', local: '', reserva: '', descricao: '', distancia: '' });
-        saveState();
-        renderRoteiro();
-      });
-      card.appendChild(addActBtn);
-
       roteiroList.appendChild(card);
     });
   }
 
+  roteiroList.addEventListener('input', (e) => {
+    const el = e.target;
+    if (el.dataset.dayField) {
+      const day = findRoteiroDay(el.closest('.day-card').dataset.dayId);
+      if (day) { day[el.dataset.dayField] = el.value; saveState(); }
+    } else if (el.dataset.field) {
+      const found = findRoteiroActivity(el.closest('.tl-item').dataset.itemId);
+      if (found) { found.act[el.dataset.field] = el.value; saveState(); }
+    }
+  });
+  // A data define a ordem e o "Dia N": reorganiza quando o seletor fecha.
+  roteiroList.addEventListener('change', (e) => {
+    if (e.target.dataset.dayField === 'dataISO') renderRoteiro();
+  });
+
+  roteiroList.addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const dayEl = btn.closest('.day-card');
+    const day = dayEl && findRoteiroDay(dayEl.dataset.dayId);
+    if (!day) return;
+    const itemEl = btn.closest('.tl-item');
+    const act = itemEl && (day.atividades || []).find(a => a.id === itemEl.dataset.itemId);
+    const action = btn.dataset.action;
+    if (action === 'toggle-day') {
+      roteiroDayExpand.set(day.id, !isRoteiroDayExpanded(day));
+      renderRoteiro();
+    } else if (action === 'edit-day') {
+      if (roteiroDayEditOpen.has(day.id) || !day.dataISO) roteiroDayEditOpen.delete(day.id);
+      else roteiroDayEditOpen.add(day.id);
+      renderRoteiro();
+    } else if (action === 'del-day') {
+      if (await customConfirm('Remover este dia e todas as atividades?')) {
+        for (const a of day.atividades || []) {
+          const key = 'act_' + a.id;
+          for (const f of state.attachments[key] || []) { await deleteFileEverywhere(f.fileKey); }
+          delete state.attachments[key];
+        }
+        state.roteiro.splice(state.roteiro.indexOf(day), 1);
+        saveState();
+        renderRoteiro();
+      }
+    } else if (action === 'add-act') {
+      const newAct = { id: uid(), hora: '', titulo: '', local: '', reserva: '', descricao: '', distancia: '' };
+      day.atividades.push(newAct);
+      roteiroActEditOpen.add(newAct.id);
+      saveState();
+      renderRoteiro();
+      const titulo = roteiroList.querySelector('[data-item-id="' + CSS.escape(newAct.id) + '"] [data-field="titulo"]');
+      if (titulo) titulo.focus();
+    } else if (action === 'edit-act' && act) {
+      roteiroActEditOpen.add(act.id);
+      renderRoteiro();
+    } else if (action === 'done-act' && act) {
+      roteiroActEditOpen.delete(act.id);
+      renderRoteiro();
+    } else if (action === 'open-act-file' && act) {
+      const f = (state.attachments['act_' + act.id] || [])[0];
+      if (f) openPdfModal(f, f.name);
+    } else if (action === 'del-act' && act) {
+      if ((day.atividades || []).length <= 1) { alert('Cada dia precisa ter ao menos 1 atividade. Remova o dia se não for mais necessário.'); return; }
+      const key = 'act_' + act.id;
+      for (const f of state.attachments[key] || []) { await deleteFileEverywhere(f.fileKey); }
+      delete state.attachments[key];
+      roteiroActEditOpen.delete(act.id);
+      day.atividades.splice(day.atividades.indexOf(act), 1);
+      saveState();
+      renderRoteiro();
+    }
+  });
+
   document.getElementById('add-day-btn').addEventListener('click', () => {
-    state.roteiro.push({ id: uid(), data: '', dataISO: '', tag: '', atividades: [{ id: uid(), hora: '', titulo: '', local: '', reserva: '', descricao: '', distancia: '' }] });
+    const day = { id: uid(), data: '', dataISO: '', tag: '', atividades: [{ id: uid(), hora: '', titulo: '', local: '', reserva: '', descricao: '', distancia: '' }] };
+    state.roteiro.push(day);
+    roteiroDayExpand.set(day.id, true);
     saveState();
     renderRoteiro();
+    const el = roteiroList.querySelector('[data-day-id="' + CSS.escape(day.id) + '"]');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  // A busca de roteiros prontos é secundária (leva pra fora do app): fica
+  // recolhida no fim da aba e já vem preenchida com o que a viagem tem.
+  document.getElementById('roteiro-search-toggle').addEventListener('click', () => {
+    const body = document.getElementById('roteiro-search-body');
+    body.hidden = !body.hidden;
+    document.querySelector('#roteiro-search-toggle .voo-fields-chevron').classList.toggle('expanded', !body.hidden);
+    if (body.hidden) return;
+    const destinoEl = document.getElementById('roteiro-search-destino');
+    const diasEl = document.getElementById('roteiro-search-dias');
+    const viajantesEl = document.getElementById('roteiro-search-viajantes');
+    if (!destinoEl.value) destinoEl.value = state.resumo.destinosList.join(', ');
+    if (!diasEl.value && getTripDays().length) diasEl.value = getTripDays().length;
+    if (!viajantesEl.value) viajantesEl.value = state.travelers.length;
   });
 
   // Busca roteiros prontos em vez de tentar "gerar" um roteiro (não existe API
@@ -4815,50 +4933,6 @@
   });
 
   renderRoteiro();
-
-  // ---------- Tabela resumo do roteiro (modal) ----------
-  const roteiroTableOverlay = document.getElementById('roteiro-table-overlay');
-  const roteiroTableBody = document.getElementById('roteiro-table-body');
-
-  function buildRoteiroTable() {
-    if (state.roteiro.length === 0) {
-      roteiroTableBody.innerHTML = '<p style="font-family:sans-serif;">Nenhum dia cadastrado no roteiro ainda.</p>';
-      return;
-    }
-    let rows = '';
-    state.roteiro.forEach((day, dayIdx) => {
-      day.atividades.forEach((act, actIdx) => {
-        rows += `<tr>
-          ${actIdx === 0 ? `<td rowspan="${day.atividades.length}"><strong>Dia ${dayIdx + 1}</strong><br>${escapeHtml(roteiroDayDateLabel(day))}</td>
-          <td rowspan="${day.atividades.length}">${escapeHtml(day.tag)}</td>` : ''}
-          <td>${act.hora ? '<strong>' + escapeHtml(act.hora) + '</strong> ' : ''}${escapeHtml(act.titulo)}${act.local ? '<br>' + escapeHtml(act.local) : ''}</td>
-          <td>${escapeHtml(act.descricao)}${act.reserva ? '<br>Reserva: ' + escapeHtml(act.reserva) : ''}</td>
-          <td>${escapeHtml(act.distancia)}</td>
-        </tr>`;
-      });
-    });
-    roteiroTableBody.innerHTML = `
-      <table>
-        <thead>
-          <tr>
-            <th>Dia</th>
-            <th>Tag</th>
-            <th>Atividade</th>
-            <th>Descrição</th>
-            <th>Distância p/ próxima</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>`;
-  }
-
-  document.getElementById('open-roteiro-table-btn').addEventListener('click', () => {
-    buildRoteiroTable();
-    roteiroTableOverlay.classList.add('open');
-  });
-  document.getElementById('roteiro-table-close').addEventListener('click', () => {
-    roteiroTableOverlay.classList.remove('open');
-  });
 
   // ---------- Checklist (por viajante, editável) ----------
   const travelerSelectEl = document.getElementById('checklist-traveler-select');
