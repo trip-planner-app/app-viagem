@@ -84,6 +84,7 @@
     min-height: 100vh;
   }
   .hint { font-size: var(--fs-sm); color: var(--muted); line-height: 1.4; }
+  .legacy-date-hint { margin: -4px 0 10px; font-style: italic; }
 
   /* ---------------- Sidebar ---------------- */
   .app-wordmark {
@@ -1953,6 +1954,40 @@
       }
       delete v.horaOrigem;
       delete v.horaDestino;
+      if (v.localizador === undefined) v.localizador = '';
+    });
+
+    // Hotéis e dias do roteiro também guardavam datas como texto livre
+    // ("23 nov, seg · 16:00", "25/11"). Ganham campos estruturados ao lado
+    // (o texto original fica guardado, só não é mais editado) — o ano é
+    // inferido do primeiro voo. Campos novos só são acrescentados, nunca
+    // renomeados: um aparelho com a versão antiga do app em cache regrava o
+    // estado inteiro no Firebase e não pode perder nada.
+    const firstVooDate = s.voos.map(v => v.origemData).filter(Boolean).sort()[0] || null;
+    const migrateDate = (text) => {
+      const dt = parseVooDateTime(text, firstVooDate);
+      return dt ? { data: localDateStr(dt), hora: /\d[:h]\d{2}/.test(text) ? String(dt.getHours()).padStart(2, '0') + ':' + String(dt.getMinutes()).padStart(2, '0') : '' } : { data: '', hora: '' };
+    };
+    s.hoteis.forEach(h => {
+      if (h.checkinData === undefined) {
+        const ci = migrateDate(h.checkin);
+        h.checkinData = ci.data;
+        h.checkinHora = ci.hora;
+      }
+      if (h.checkoutData === undefined) {
+        const co = migrateDate(h.checkout);
+        h.checkoutData = co.data;
+        h.checkoutHora = co.hora;
+      }
+    });
+    s.roteiro.forEach(day => {
+      if (day.dataISO === undefined) day.dataISO = migrateDate(day.data).data;
+      day.atividades = Array.isArray(day.atividades) ? day.atividades : [];
+      day.atividades.forEach(act => {
+        if (act.hora === undefined) act.hora = '';
+        if (act.local === undefined) act.local = '';
+        if (act.reserva === undefined) act.reserva = '';
+      });
     });
     return s;
   }
@@ -2640,7 +2675,7 @@
     html += state.voos.length
       ? state.voos.map(v => `
         <div class="pe-item">
-          <div class="pe-title">${escapeHtml(v.trecho || '')}${v.codigo ? ' · ' + escapeHtml(v.codigo) : ''}</div>
+          <div class="pe-title">${escapeHtml(v.trecho || '')}${v.codigo ? ' · ' + escapeHtml(v.codigo) : ''}${v.localizador ? ' · Reserva ' + escapeHtml(v.localizador) : ''}</div>
           <div class="pe-meta">${escapeHtml(v.origem || '?')} (${escapeHtml(fmtVooDateTime(v.origemData, v.origemHora))}) → ${escapeHtml(v.destino || '?')} (${escapeHtml(fmtVooDateTime(v.destinoData, v.destinoHora))})</div>
           ${v.meta ? `<div class="pe-meta">${escapeHtml(v.meta)}</div>` : ''}
         </div>`).join('')
@@ -2651,7 +2686,10 @@
       ? state.hoteis.map(h => `
         <div class="pe-item">
           <div class="pe-title">${escapeHtml(h.nome || 'Hotel')}</div>
-          <div class="pe-meta">${[h.checkin && 'Check-in: ' + h.checkin, h.checkout && 'Check-out: ' + h.checkout].filter(Boolean).map(escapeHtml).join(' · ')}</div>
+          <div class="pe-meta">${[
+            (h.checkinData || h.checkin) && 'Check-in: ' + (h.checkinData ? fmtVooDateTime(h.checkinData, h.checkinHora) : h.checkin),
+            (h.checkoutData || h.checkout) && 'Check-out: ' + (h.checkoutData ? fmtVooDateTime(h.checkoutData, h.checkoutHora) : h.checkout)
+          ].filter(Boolean).map(escapeHtml).join(' · ')}</div>
           ${h.endereco ? `<div class="pe-meta">${escapeHtml(h.endereco)}</div>` : ''}
           ${h.confirmacao ? `<div class="pe-meta">Confirmação: ${escapeHtml(h.confirmacao)}</div>` : ''}
         </div>`).join('')
@@ -2662,8 +2700,8 @@
     html += state.roteiro.length
       ? state.roteiro.map(d => `
         <div class="pe-day">
-          <div class="pe-day-title">${escapeHtml(d.data || '')}${d.tag ? ' · ' + escapeHtml(d.tag) : ''}</div>
-          ${(d.atividades || []).map(a => `<div class="pe-item"><span class="pe-title">${escapeHtml(a.titulo || '')}</span>${a.descricao ? ' — ' + escapeHtml(a.descricao) : ''}</div>`).join('') || '<div class="pe-empty">Sem atividades neste dia.</div>'}
+          <div class="pe-day-title">${escapeHtml(roteiroDayDateLabel(d))}${d.tag ? ' · ' + escapeHtml(d.tag) : ''}</div>
+          ${(d.atividades || []).map(a => `<div class="pe-item">${a.hora ? escapeHtml(a.hora) + ' · ' : ''}<span class="pe-title">${escapeHtml(a.titulo || '')}</span>${a.local ? ' (' + escapeHtml(a.local) + ')' : ''}${a.descricao ? ' — ' + escapeHtml(a.descricao) : ''}${a.reserva ? ' · Reserva: ' + escapeHtml(a.reserva) : ''}</div>`).join('') || '<div class="pe-empty">Sem atividades neste dia.</div>'}
         </div>`).join('')
       : '<div class="pe-empty">Nenhum dia no roteiro ainda.</div>';
 
@@ -3156,19 +3194,36 @@
   // data de embarque (ou do ano atual, na falta dela) e corrige pro ano
   // seguinte se a data cair muito no passado (viagem de virada de ano). Se
   // não der pra extrair nem o dia/mês, retorna null.
+  // Também usada na migração do check-in/check-out dos hotéis e da data dos
+  // dias do roteiro, por isso aceita tanto "22/11 · 22:25" quanto
+  // "23 nov, seg · 16:00".
+  // (Function declaration roda antes de qualquer const deste script — é
+  // chamada por normalizeState() já na carga — por isso a lista de meses
+  // fica aqui dentro.)
   function parseVooDateTime(text, referenceDateStr) {
     if (!text) return null;
+    const PT_MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+    let day, month, hour = 0, minute = 0;
     const m = text.match(/(\d{1,2})\/(\d{1,2})(?:[^\d]*(\d{1,2}):(\d{2}))?/);
-    if (!m) return null;
-    const day = parseInt(m[1], 10);
-    const month = parseInt(m[2], 10) - 1;
-    const hour = m[3] != null ? parseInt(m[3], 10) : 0;
-    const minute = m[4] != null ? parseInt(m[4], 10) : 0;
+    const mName = !m && text.toLowerCase().match(/(\d{1,2})\s*(?:de\s+)?(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[a-zç]*\.?(?:[^\d]*(\d{1,2})[:h](\d{2}))?/);
+    if (m) {
+      day = parseInt(m[1], 10);
+      month = parseInt(m[2], 10) - 1;
+      if (m[3] != null) { hour = parseInt(m[3], 10); minute = parseInt(m[4], 10); }
+    } else if (mName) {
+      day = parseInt(mName[1], 10);
+      month = PT_MONTHS.indexOf(mName[2]);
+      if (mName[3] != null) { hour = parseInt(mName[3], 10); minute = parseInt(mName[4], 10); }
+    } else {
+      return null;
+    }
     if (day < 1 || day > 31 || month < 0 || month > 11) return null;
     const refYear = referenceDateStr ? new Date(referenceDateStr + 'T00:00:00').getFullYear() : new Date().getFullYear();
     let candidate = new Date(refYear, month, day, hour, minute);
-    const now = new Date();
-    if (candidate.getTime() < now.getTime() - 180 * 24 * 60 * 60 * 1000) {
+    // Com data de referência (primeiro voo), compara com ela — viagem já
+    // concluída não pode ter o ano empurrado só porque ficou no passado.
+    const pivot = referenceDateStr ? new Date(referenceDateStr + 'T00:00:00') : new Date();
+    if (candidate.getTime() < pivot.getTime() - 180 * 24 * 60 * 60 * 1000) {
       candidate = new Date(refYear + 1, month, day, hour, minute);
     }
     return candidate;
@@ -3456,7 +3511,7 @@
             <div class="arrow">${ARROW_ICON_SVG}</div>
             <div class="pt"><div class="code">${escapeHtml(voo.destino) || '—'}</div><div class="time">${escapeHtml(fmtVooDateTime(voo.destinoData, voo.destinoHora)) || 'sem data/hora'}</div></div>
           </div>
-          ${voo.codigo ? `<div class="voo-summary-codigo">${escapeHtml(voo.codigo)}</div>` : ''}
+          ${voo.codigo || voo.localizador ? `<div class="voo-summary-codigo">${[voo.codigo, voo.localizador && 'Reserva ' + voo.localizador].filter(Boolean).map(escapeHtml).join(' · ')}</div>` : ''}
           ${voo.meta ? `<div class="voo-summary-meta">${escapeHtml(voo.meta)}</div>` : ''}
           ${missing.length ? `<div class="voo-summary-warning">${VOO_WARNING_ICON} Falta preencher: ${escapeHtml(missing.join(', '))}</div>` : ''}
         </div>` : `<p class="hint voo-summary-empty-hint">Preencha os campos abaixo ou anexe/importe o cartão de embarque.</p>`}
@@ -3505,6 +3560,10 @@
             </div>
           </div>
           <div class="field" style="margin-top:10px;">
+            <label class="field-label">Código da reserva (localizador)</label>
+            <input type="text" data-field="localizador" value="${escapeAttr(voo.localizador)}" placeholder="Ex: ABC123">
+          </div>
+          <div class="field">
             <label class="field-label">Observações (companhia, tipo de conexão etc.)</label>
             <input type="text" data-field="meta" value="${escapeAttr(voo.meta)}" placeholder="Ex: American Airlines · overnight">
           </div>
@@ -3632,7 +3691,8 @@
       destino: fields.destino || '',
       destinoData: fields.destinoData || '',
       destinoHora: fields.destinoHora || '',
-      meta: fields.meta || ''
+      meta: fields.meta || '',
+      localizador: fields.localizador || ''
     };
     state.voos.push(voo);
     saveState();
@@ -3870,6 +3930,21 @@
 
   // ---------- Hotéis (editável, lista dinâmica) ----------
   const hoteisListEl = document.getElementById('hoteis-list');
+  // Número de noites a partir das datas estruturadas; null quando alguma das
+  // duas ainda não foi preenchida (aí o campo "Diárias" continua manual).
+  function hotelNights(h) {
+    if (!h.checkinData || !h.checkoutData) return null;
+    const n = Math.round((new Date(h.checkoutData + 'T00:00:00') - new Date(h.checkinData + 'T00:00:00')) / 86400000);
+    return n >= 0 && n <= 365 ? n : null;
+  }
+
+  // Quando a migração não conseguiu ler um texto antigo (ex: "check-in a
+  // combinar"), mostra o que estava escrito pra pessoa preencher a data.
+  function legacyDateHint(isoValue, legacyText) {
+    if (isoValue || !legacyText) return '';
+    return `<p class="hint legacy-date-hint">Anotado antes: "${escapeHtml(legacyText)}"</p>`;
+  }
+
   function renderHoteis() {
     hoteisListEl.innerHTML = '';
     state.hoteis.forEach((h, idx) => {
@@ -3892,18 +3967,30 @@
         </div>
         <div class="field-row">
           <div class="field">
-            <label class="field-label">Check-in</label>
-            <input type="text" data-field="checkin" value="${escapeAttr(h.checkin)}" placeholder="Ex: 23 nov, seg · 16:00">
+            <label class="field-label">Data do check-in</label>
+            <input type="date" data-field="checkinData" value="${escapeAttr(h.checkinData)}">
           </div>
           <div class="field">
-            <label class="field-label">Check-out</label>
-            <input type="text" data-field="checkout" value="${escapeAttr(h.checkout)}" placeholder="Ex: 24 nov, ter · 11:00">
+            <label class="field-label">Hora do check-in</label>
+            <input type="time" data-field="checkinHora" value="${escapeAttr(h.checkinHora)}">
           </div>
         </div>
+        ${legacyDateHint(h.checkinData, h.checkin)}
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label">Data do check-out</label>
+            <input type="date" data-field="checkoutData" value="${escapeAttr(h.checkoutData)}">
+          </div>
+          <div class="field">
+            <label class="field-label">Hora do check-out</label>
+            <input type="time" data-field="checkoutHora" value="${escapeAttr(h.checkoutHora)}">
+          </div>
+        </div>
+        ${legacyDateHint(h.checkoutData, h.checkout)}
         <div class="field-row">
           <div class="field">
             <label class="field-label">Diárias</label>
-            <input type="text" data-field="diarias" value="${escapeAttr(h.diarias)}" placeholder="Ex: 3">
+            <input type="text" data-field="diarias" value="${escapeAttr(hotelNights(h) != null ? String(hotelNights(h)) : h.diarias)}" placeholder="Ex: 3"${hotelNights(h) != null ? ' readonly title="Calculado pelas datas de check-in e check-out"' : ''}>
           </div>
           <div class="field">
             <label class="field-label">Confirmação</label>
@@ -3943,7 +4030,15 @@
       `;
       card.querySelectorAll('[data-field]').forEach(inputEl => {
         inputEl.addEventListener('input', () => {
+          if (inputEl.readOnly) return;
           h[inputEl.dataset.field] = inputEl.value;
+          if (inputEl.dataset.field === 'checkinData' || inputEl.dataset.field === 'checkoutData') {
+            const nights = hotelNights(h);
+            const diariasEl = card.querySelector('[data-field="diarias"]');
+            if (nights != null) h.diarias = String(nights);
+            diariasEl.value = h.diarias || '';
+            diariasEl.readOnly = nights != null;
+          }
           saveState();
         });
       });
@@ -3967,7 +4062,7 @@
     });
   }
   document.getElementById('add-hotel-btn').addEventListener('click', () => {
-    state.hoteis.push({ id: 'hotel_' + uid(), nome: '', badge: '', checkin: '', checkout: '', diarias: '', confirmacao: '', pin: '', endereco: '', telefone: '', valor: '', cancelamento: '', observacoes: '' });
+    state.hoteis.push({ id: 'hotel_' + uid(), nome: '', badge: '', checkin: '', checkout: '', checkinData: '', checkinHora: '', checkoutData: '', checkoutHora: '', diarias: '', confirmacao: '', pin: '', endereco: '', telefone: '', valor: '', cancelamento: '', observacoes: '' });
     saveState();
     renderHoteis();
   });
@@ -4054,6 +4149,10 @@
   // ---------- Roteiro (dias com múltiplas atividades editáveis) ----------
   const roteiroList = document.getElementById('roteiro-list');
 
+  function roteiroDayDateLabel(day) {
+    return day.dataISO ? fmtVooDateTime(day.dataISO, '') : (day.data || '');
+  }
+
   function renderRoteiro() {
     roteiroList.innerHTML = '';
     state.roteiro.forEach((day, dayIdx) => {
@@ -4085,12 +4184,13 @@
       fieldsRow.innerHTML = `
         <div class="field">
           <label class="field-label">Data</label>
-          <input type="text" data-field="data" value="${escapeAttr(day.data)}" placeholder="Ex: 25/11">
+          <input type="date" data-field="dataISO" value="${escapeAttr(day.dataISO)}">
         </div>
         <div class="field">
           <label class="field-label">Tag do dia</label>
           <input type="text" data-field="tag" value="${escapeAttr(day.tag)}" placeholder="Ex: Parque">
         </div>`;
+      const legacyHint = legacyDateHint(day.dataISO, day.data);
       fieldsRow.querySelectorAll('[data-field]').forEach(inputEl => {
         inputEl.addEventListener('input', () => {
           day[inputEl.dataset.field] = inputEl.value;
@@ -4098,6 +4198,7 @@
         });
       });
       card.appendChild(fieldsRow);
+      if (legacyHint) card.insertAdjacentHTML('beforeend', legacyHint);
 
       const actsWrap = document.createElement('div');
       day.atividades.forEach((act, actIdx) => {
@@ -4108,9 +4209,25 @@
             <span class="act-idx">Atividade ${actIdx + 1}</span>
             <button class="btn danger small" data-action="del-act">Remover</button>
           </div>
-          <div class="field">
-            <label class="field-label">Título</label>
-            <input type="text" data-field="titulo" value="${escapeAttr(act.titulo)}" placeholder="Ex: Magic Kingdom">
+          <div class="field-row">
+            <div class="field" style="flex:0 0 110px;">
+              <label class="field-label">Horário</label>
+              <input type="time" data-field="hora" value="${escapeAttr(act.hora)}">
+            </div>
+            <div class="field">
+              <label class="field-label">Título</label>
+              <input type="text" data-field="titulo" value="${escapeAttr(act.titulo)}" placeholder="Ex: Magic Kingdom">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label class="field-label">Local</label>
+              <input type="text" data-field="local" value="${escapeAttr(act.local)}" placeholder="Ex: Orlando, FL">
+            </div>
+            <div class="field">
+              <label class="field-label">Reserva / ingresso</label>
+              <input type="text" data-field="reserva" value="${escapeAttr(act.reserva)}" placeholder="Nº da reserva">
+            </div>
           </div>
           <div class="field">
             <label class="field-label">Descrição</label>
@@ -4149,7 +4266,7 @@
       addActBtn.style.marginTop = '10px';
       addActBtn.textContent = '+ Adicionar atividade a este dia';
       addActBtn.addEventListener('click', () => {
-        day.atividades.push({ id: uid(), titulo: '', descricao: '', distancia: '' });
+        day.atividades.push({ id: uid(), hora: '', titulo: '', local: '', reserva: '', descricao: '', distancia: '' });
         saveState();
         renderRoteiro();
       });
@@ -4160,7 +4277,7 @@
   }
 
   document.getElementById('add-day-btn').addEventListener('click', () => {
-    state.roteiro.push({ id: uid(), data: '', tag: '', atividades: [{ id: uid(), titulo: '', descricao: '', distancia: '' }] });
+    state.roteiro.push({ id: uid(), data: '', dataISO: '', tag: '', atividades: [{ id: uid(), hora: '', titulo: '', local: '', reserva: '', descricao: '', distancia: '' }] });
     saveState();
     renderRoteiro();
   });
@@ -4211,10 +4328,10 @@
     state.roteiro.forEach((day, dayIdx) => {
       day.atividades.forEach((act, actIdx) => {
         rows += `<tr>
-          ${actIdx === 0 ? `<td rowspan="${day.atividades.length}"><strong>Dia ${dayIdx + 1}</strong><br>${escapeHtml(day.data)}</td>
+          ${actIdx === 0 ? `<td rowspan="${day.atividades.length}"><strong>Dia ${dayIdx + 1}</strong><br>${escapeHtml(roteiroDayDateLabel(day))}</td>
           <td rowspan="${day.atividades.length}">${escapeHtml(day.tag)}</td>` : ''}
-          <td>${escapeHtml(act.titulo)}</td>
-          <td>${escapeHtml(act.descricao)}</td>
+          <td>${act.hora ? '<strong>' + escapeHtml(act.hora) + '</strong> ' : ''}${escapeHtml(act.titulo)}${act.local ? '<br>' + escapeHtml(act.local) : ''}</td>
+          <td>${escapeHtml(act.descricao)}${act.reserva ? '<br>Reserva: ' + escapeHtml(act.reserva) : ''}</td>
           <td>${escapeHtml(act.distancia)}</td>
         </tr>`;
       });
