@@ -6032,10 +6032,15 @@
       hadController = true;
     });
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').then((reg) => {
-        document.addEventListener('visibilitychange', () => {
-          if (document.visibilityState === 'visible') reg.update().catch(() => {});
-        });
+      // updateViaCache: 'none' — o navegador sempre pergunta ao servidor pelo
+      // sw.js novo, sem usar a cópia guardada (o GitHub Pages manda guardar
+      // por 10 min).
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((reg) => {
+        const check = () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); };
+        document.addEventListener('visibilitychange', check);
+        window.addEventListener('online', check);
+        // Com o app aberto na tela, também procura versão nova a cada 5 min.
+        setInterval(check, 5 * 60 * 1000);
       }).catch(() => {});
     });
   }

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'viagem-app-v66';
+const CACHE_NAME = 'viagem-app-v67';
 const ASSETS = [
   './',
   './index.html',
@@ -18,10 +18,23 @@ const ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      // cache.add() por item (em vez de addAll) para que uma falha isolada
-      // (ex: fonte do Google bloqueada numa rede específica) não impeça o
-      // resto do app de ficar disponível offline.
-      .then((cache) => Promise.all(ASSETS.map((url) => cache.add(url).catch(() => {}))))
+      // Item por item (em vez de addAll) para que uma falha isolada (ex: CDN
+      // bloqueada numa rede específica) não impeça o resto de ficar offline.
+      .then((cache) => Promise.all(ASSETS.map(async (url) => {
+        try {
+          // Bibliotecas de CDN têm a versão na URL e nunca mudam: reaproveita
+          // a cópia da versão anterior em vez de baixar tudo de novo (era o
+          // que mais atrasava o aviso de "nova versão" no celular).
+          if (url.startsWith('https://')) {
+            const old = await caches.match(url);
+            if (old) return cache.put(url, old);
+          }
+          // cache: 'reload' pula o cache HTTP do navegador — o GitHub Pages
+          // manda guardar por 10 min, e sem isso a versão nova podia salvar
+          // o index.html antigo.
+          await cache.add(new Request(url, { cache: 'reload' }));
+        } catch (e) {}
+      })))
       .then(() => self.skipWaiting())
   );
 });
