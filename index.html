@@ -1025,6 +1025,42 @@
   .roteiro-search-body { margin-top: 12px; }
   .roteiro-search-body[hidden] { display: none; }
 
+  /* Documentos: um card por viajante, um documento por linha */
+  .doc-trav-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .doc-trav-name { flex: 1; min-width: 0; font-size: var(--fs-lg); font-weight: 800; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .doc-trav-status { flex: none; font-size: var(--fs-xs); font-weight: 700; padding: 3px 10px; border-radius: var(--radius-pill); background: var(--card2); color: var(--muted); border: 1px solid var(--border); }
+  .doc-trav-status.ok { background: transparent; color: var(--good); border-color: var(--good); }
+  .doc-trav-status.warn { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .doc-trav-status.bad { background: var(--danger); color: #fff; border-color: var(--danger); }
+  .doc-item { border-bottom: 1px dashed var(--border); }
+  .doc-item:last-of-type { border-bottom: none; }
+  .doc-row { display: flex; align-items: center; gap: 10px; padding: 11px 0; }
+  .doc-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--border); }
+  .doc-dot.ok { background: var(--good); }
+  .doc-dot.warn { background: var(--accent); }
+  .doc-dot.bad { background: var(--danger); }
+  .doc-main { flex: 1; min-width: 0; background: none; border: none; padding: 0; text-align: left; cursor: pointer; font-family: inherit; color: var(--text); }
+  .doc-label { display: block; font-size: var(--fs-md); font-weight: 700; line-height: 1.3; }
+  .doc-sub { display: block; font-size: var(--fs-sm); color: var(--muted); }
+  .doc-sub.warn { color: var(--accent); font-weight: 600; }
+  .doc-sub.bad { color: var(--danger); font-weight: 600; }
+  .doc-item.na .doc-label { color: var(--muted); font-weight: 600; }
+  .doc-quick { flex: none; display: flex; gap: 6px; }
+  .doc-quick .btn { display: inline-flex; align-items: center; gap: 5px; }
+  .doc-quick .btn svg { width: 14px; height: 14px; flex: none; }
+  .doc-edit { background: var(--card2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px; margin: 0 0 12px; }
+  .doc-edit .attach-list { margin-top: 6px; }
+  .doc-check { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: var(--fs-sm); color: var(--text); }
+  .doc-check input { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  .doc-edit-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; gap: 10px; flex-wrap: wrap; }
+  .doc-others-title ~ .attach-list .attach-item { flex-wrap: wrap; }
+  .doc-others-title ~ .attach-list .attach-item .name { flex: 1; min-width: 0; }
+  .doc-move { width: 100%; margin-top: 8px; }
+  .doc-others-title { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 700; margin-top: 12px; }
+  .doc-trav-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; gap: 10px; flex-wrap: wrap; }
+  .doc-new-row { display: flex; gap: 8px; margin-top: 10px; }
+  .doc-new-row input { flex: 1; }
+
   /* Checklist */
   ul.checklist { list-style: none; margin: 0; padding: 0; }
   ul.checklist li {
@@ -1508,21 +1544,20 @@
   <!-- DOCUMENTOS -->
   <div class="tab" id="documentos">
     <div class="page-title">Documentos</div>
+    <div id="doc-groups"></div>
     <div class="card">
-      <h3>👤 Ver documentos de</h3>
-      <div class="traveler-select" id="doc-traveler-select"></div>
-      <div class="add-row">
-        <input type="text" id="new-traveler-name-doc" placeholder="Nome do novo viajante">
+      <h3>📁 Arquivos gerais</h3>
+      <p class="hint" style="margin:0;">Vouchers e outros arquivos que não são de um viajante só.</p>
+      <div id="doc-outros-zone"></div>
+    </div>
+    <div class="card">
+      <h3>👤 Novo viajante</h3>
+      <div class="add-row" style="margin-top:0;">
+        <input type="text" id="new-traveler-name-doc" placeholder="Nome do viajante">
         <button class="btn" id="add-traveler-btn-doc">+ Adicionar</button>
       </div>
     </div>
-    <div class="card">
-      <h3 id="doc-title">📄 Documentos</h3>
-      <p class="hint" style="margin:0 0 10px;">Passaporte, ESTA, seguro viagem, vouchers e outros documentos (PDF ou foto).</p>
-      <button class="btn primary" id="doc-upload-btn">+ Adicionar arquivo</button>
-      <input type="file" id="doc-upload-input" accept="application/pdf,image/*" multiple>
-      <div class="attach-list" id="doc-list"></div>
-    </div>
+    <input type="file" id="doc-upload-input" accept="application/pdf,image/*" multiple>
   </div>
 
   <!-- ROTEIRO -->
@@ -1949,6 +1984,7 @@
       ]
     },
     attachments: {}, // { "voo-1": [...], "doc_Eduardo": [...], "act_<id>": [...] }
+    docInfo: {}, // { "Eduardo": { items: [{ id, nome, validade, naoPrecisa }] } }
     voos: [
       { id: 'voo-1', trecho: 'Trecho 1', codigo: 'AA 964', origem: 'GIG', horaOrigem: '22/11 · 22:25', destino: 'MIA', horaDestino: '23/11 · 05:00', meta: 'American Airlines · overnight' },
       { id: 'voo-2', trecho: 'Trecho 2', codigo: 'AA 1018', origem: 'MIA', horaOrigem: '23/11 · 07:30', destino: 'MCO', horaDestino: '23/11 · 08:43', meta: 'American Airlines · conexão em Miami' },
@@ -2065,6 +2101,7 @@
     });
     s.checklists = s.checklists && typeof s.checklists === 'object' ? s.checklists : {};
     s.attachments = s.attachments && typeof s.attachments === 'object' ? s.attachments : {};
+    s.docInfo = s.docInfo && typeof s.docInfo === 'object' ? s.docInfo : {};
     if (!s.activeChecklistTraveler || !s.travelers.includes(s.activeChecklistTraveler)) s.activeChecklistTraveler = s.travelers[0];
     if (!s.activeDocTraveler || !s.travelers.includes(s.activeDocTraveler)) s.activeDocTraveler = s.travelers[0];
     s.tripTitle = s.tripTitle || '';
@@ -2212,7 +2249,7 @@
     renderVoos();
     renderHoteis();
     hotelNotasEl.value = state.hotelNotasGerais || '';
-    renderDocTravelerChips();
+    renderDocOutros();
     renderDocs();
     renderRoteiro();
     renderTravelerChips();
@@ -3271,7 +3308,11 @@
     const incompletos = state.voos.filter(v => vooMissingFields(v).length).length;
     const nHoteis = state.hoteis.length;
     const comVoucher = state.hoteis.filter(h => (state.attachments[h.id] || []).length).length;
-    const nArquivos = Object.keys(state.attachments).filter(k => k.indexOf('doc_') === 0).reduce((sum, k) => sum + (state.attachments[k] || []).length, 0);
+    const docSum = docSummary();
+    const docSub = [
+      docSum.alertas && plural(docSum.alertas, 'alerta de validade', 'alertas de validade'),
+      docSum.pendentes && plural(docSum.pendentes, 'pendente', 'pendentes')
+    ].filter(Boolean).join(' · ') || 'Tudo certo';
     const nDias = state.roteiro.length;
     const nAtividades = state.roteiro.reduce((sum, d) => sum + (d.atividades || []).filter(a => a.titulo).length, 0);
     const gridTile = (tab, icon, label, n, sub) => `
@@ -3283,7 +3324,7 @@
     document.getElementById('dash-grid').innerHTML =
       gridTile('voos', 'voo', 'Voos', nVoos, nVoos ? plural(nVoos, 'cadastrado', 'cadastrados') + (incompletos ? ' · ' + plural(incompletos, 'incompleto', 'incompletos') : '') : 'Nenhum ainda') +
       gridTile('hoteis', 'hotel', 'Hotéis', nHoteis, nHoteis ? plural(nHoteis, 'cadastrado', 'cadastrados') + (comVoucher ? ' · ' + comVoucher + ' c/ voucher' : '') : 'Nenhum ainda') +
-      gridTile('documentos', 'documentos', 'Documentos', nArquivos, nArquivos ? plural(nArquivos, 'arquivo', 'arquivos') : 'Nenhum arquivo ainda') +
+      gridTile('documentos', 'documentos', 'Documentos', 1, docSub) +
       gridTile('roteiro', 'roteiro', 'Roteiro', nDias, nDias ? plural(nDias, 'dia planejado', 'dias planejados') + (nAtividades ? ' · ' + plural(nAtividades, 'atividade', 'atividades') : '') : 'Nenhum dia ainda');
   }
 
@@ -4570,64 +4611,330 @@
     saveState();
   });
 
-  // ---------- Documentos (por viajante + Outros) ----------
-  const docTravelerSelectEl = document.getElementById('doc-traveler-select');
-  const docTitleEl = document.getElementById('doc-title');
-  const docListEl = document.getElementById('doc-list');
-  const docUploadBtn = document.getElementById('doc-upload-btn');
+  // ---------- Documentos (um card por viajante + arquivos gerais) ----------
+  // Cada viajante nasce com uma lista padrão (passaporte, visto/ESTA, seguro)
+  // e pode ganhar documentos próprios. Os dados ficam em state.docInfo; os
+  // arquivos continuam em state.attachments['doc_<nome>'] (marcados com
+  // docItem = id do documento), como sempre foram — assim um aparelho com a
+  // versão antiga do app em cache ainda vê e regrava todos eles.
+  const docGroupsEl = document.getElementById('doc-groups');
   const docUploadInput = document.getElementById('doc-upload-input');
+  // Função (e não const) porque o painel da Início chama docSummary() antes
+  // deste trecho do script rodar.
+  function docDefaults() {
+    return [
+      { id: 'passaporte', nome: 'Passaporte' },
+      { id: 'visto', nome: 'Visto / ESTA' },
+      { id: 'seguro', nome: 'Seguro viagem' }
+    ];
+  }
+  const docItemOpen = new Set();   // "viajante|id" em edição
+  const docNewOpen = new Set();    // viajantes com o campo "outro documento" aberto
+  let docUploadTarget = null;
 
   function docKey(name) { return 'doc_' + name; }
 
-  function docCategories() {
-    return state.travelers.concat(['Outros']);
+  // Garante a lista padrão (ids fixos, para dois aparelhos não criarem cópias).
+  function travelerDocItems(name) {
+    if (!state.docInfo[name] || !Array.isArray(state.docInfo[name].items)) state.docInfo[name] = { items: [] };
+    const items = state.docInfo[name].items;
+    docDefaults().forEach((d, i) => {
+      if (!items.some(it => it.id === d.id)) items.splice(Math.min(i, items.length), 0, { id: d.id, nome: d.nome, validade: '', naoPrecisa: false });
+    });
+    return items;
   }
 
-  function renderDocTravelerChips() {
-    docTravelerSelectEl.innerHTML = '';
-    docCategories().forEach(name => {
-      const removable = name !== 'Outros';
-      const chip = document.createElement('div');
-      chip.className = 'traveler-chip' + (name === state.activeDocTraveler ? ' active' : '');
-      chip.innerHTML = `<span>${escapeHtml(name)}</span>` + (removable ? `<span class="rm" data-action="rm">✕</span>` : '');
-      chip.querySelector('span:not(.rm)').addEventListener('click', () => {
-        state.activeDocTraveler = name;
-        saveState();
-        renderDocTravelerChips();
-        renderDocs();
-      });
-      if (removable) {
-        chip.querySelector('.rm').addEventListener('click', (e) => {
-          e.stopPropagation();
-          removeTravelerGlobal(name);
-        });
-      }
-      docTravelerSelectEl.appendChild(chip);
+  // Arquivos anexados antes desta versão não sabem a que documento
+  // pertencem: tenta adivinhar uma única vez pelo nome do arquivo. O que não
+  // der fica em "Outros arquivos", com um seletor para mover.
+  // Não salva aqui: roda durante a renderização (inclusive antes de a nuvem
+  // responder); a marcação vai junto no próximo salvamento normal.
+  function autoLinkDocFiles(name) {
+    const guesses = [
+      [/passaport|passport/i, 'passaporte'],
+      [/\besta\b|visto|visa/i, 'visto'],
+      [/seguro|insurance|assist/i, 'seguro']
+    ];
+    (state.attachments[docKey(name)] || []).forEach(f => {
+      if (f.docItem !== undefined) return;
+      const g = guesses.find(([re]) => re.test(f.name || ''));
+      f.docItem = g ? g[1] : '';
     });
   }
 
-  function renderDocs() {
-    const name = state.activeDocTraveler;
-    docTitleEl.textContent = `📄 Documentos — ${name}`;
-    renderAttachList(docKey(name), docListEl);
+  function docFiles(name, itemId) {
+    return (state.attachments[docKey(name)] || []).filter(f => f.docItem === itemId);
   }
 
-  document.getElementById('add-traveler-btn-doc').addEventListener('click', () => {
-    const input = document.getElementById('new-traveler-name-doc');
-    addTravelerGlobal(input.value.trim());
-    input.value = '';
+  function addMonths(iso, n) {
+    const d = new Date(iso + 'T00:00:00');
+    d.setMonth(d.getMonth() + n);
+    return localDateStr(d);
+  }
+
+  // Situação de um documento: pendente (nada anexado nem validade), vencido,
+  // vence antes da volta (ou, no passaporte, menos de 6 meses depois dela).
+  function docStatus(name, item) {
+    if (item.naoPrecisa) return { level: 'na', text: 'Não preciso' };
+    const nFiles = docFiles(name, item.id).length;
+    const today = localDateStr();
+    const bounds = getTripBounds();
+    const tripEnd = bounds ? (bounds.last.destinoData || bounds.last.origemData) : null;
+    const v = item.validade;
+    const fileTxt = nFiles ? plural(nFiles, 'arquivo', 'arquivos') : '';
+    if (v) {
+      const validTxt = 'Válido até ' + fmtDateBR(v);
+      if (v < today) return { level: 'bad', text: 'Vencido em ' + fmtDateBR(v) };
+      if (tripEnd && v < tripEnd) return { level: 'bad', text: 'Vence antes da volta (' + fmtDateBR(v) + ')' };
+      if (item.id === 'passaporte' && tripEnd && v < addMonths(tripEnd, 6)) return { level: 'warn', text: validTxt + ' · menos de 6 meses após a volta' };
+      if (!tripEnd && v < addMonths(today, 2)) return { level: 'warn', text: 'Vence em breve (' + fmtDateBR(v) + ')' };
+      return { level: 'ok', text: [validTxt, fileTxt].filter(Boolean).join(' · ') };
+    }
+    if (nFiles) return { level: 'ok', text: fileTxt };
+    return { level: 'warn', text: 'Pendente' };
+  }
+
+  function fmtDateBR(iso) {
+    const [y, m, d] = iso.split('-');
+    return d + '/' + m + '/' + y;
+  }
+
+  // Resumo usado no card do viajante e no painel da Início.
+  function docSummary() {
+    let pendentes = 0, alertas = 0;
+    const perTraveler = {};
+    state.travelers.forEach(name => {
+      autoLinkDocFiles(name);
+      let p = 0, a = 0, ruins = 0;
+      travelerDocItems(name).forEach(it => {
+        const st = docStatus(name, it);
+        if (st.text === 'Pendente') p++;
+        else if (st.level === 'bad' || st.level === 'warn') a++;
+        if (st.level === 'bad') ruins++;
+      });
+      perTraveler[name] = { pendentes: p, alertas: a, ruins };
+      pendentes += p;
+      alertas += a;
+    });
+    return { pendentes, alertas, perTraveler };
+  }
+
+  function docItemHtml(name, item) {
+    const st = docStatus(name, item);
+    const files = docFiles(name, item.id);
+    const key = name + '|' + item.id;
+    const open = docItemOpen.has(key);
+    const isDefault = docDefaults().some(d => d.id === item.id);
+    const dotClass = st.level === 'na' ? '' : st.level;
+    const quick = files.length === 1
+      ? `<button type="button" class="btn small" data-action="open-file" data-file="${escapeAttr(files[0].fileKey)}">${dashIcon('documentos')}Abrir</button>`
+      : files.length > 1 && !open
+        ? `<button type="button" class="btn small" data-action="toggle-doc">${dashIcon('documentos')}${files.length} arquivos</button>`
+        : '';
+    return `
+      <div class="doc-item${item.naoPrecisa ? ' na' : ''}" data-trav="${escapeAttr(name)}" data-doc-id="${escapeAttr(item.id)}">
+        <div class="doc-row">
+          <span class="doc-dot ${dotClass}"></span>
+          <button type="button" class="doc-main" data-action="toggle-doc">
+            <span class="doc-label">${escapeHtml(item.nome || 'Documento')}</span>
+            <span class="doc-sub ${st.level === 'bad' ? 'bad' : st.level === 'warn' ? 'warn' : ''}">${escapeHtml(st.text)}</span>
+          </button>
+          <span class="doc-quick">${quick}</span>
+          <svg class="voo-fields-chevron${open ? ' expanded' : ''}" data-action="toggle-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);cursor:pointer;"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        ${open ? `
+        <div class="doc-edit">
+          <div class="field-row">
+            ${isDefault ? '' : `
+            <div class="field">
+              <label class="field-label">Nome do documento</label>
+              <input type="text" data-doc-field="nome" value="${escapeAttr(item.nome)}" placeholder="Ex: Carteira de vacinação">
+            </div>`}
+            <div class="field">
+              <label class="field-label">Validade</label>
+              <input type="date" data-doc-field="validade" value="${escapeAttr(item.validade)}">
+            </div>
+          </div>
+          <div class="attach-list">${files.map(f => `
+            <div class="attach-item">
+              <div class="name">📎 <span>${escapeHtml(f.name)}</span></div>
+              <div class="actions">
+                <button type="button" class="btn small" data-action="open-file" data-file="${escapeAttr(f.fileKey)}">Abrir</button>
+                <button type="button" class="btn small danger" data-action="del-file" data-file="${escapeAttr(f.fileKey)}">Remover</button>
+              </div>
+            </div>`).join('')}</div>
+          <button type="button" class="btn small" style="margin-top:10px;" data-action="upload">+ Anexar arquivo (PDF ou foto)</button>
+          <label class="doc-check"><input type="checkbox" data-doc-field="naoPrecisa" ${item.naoPrecisa ? 'checked' : ''}>Não preciso deste documento nesta viagem</label>
+          <div class="doc-edit-actions">
+            ${isDefault ? '<span></span>' : '<button type="button" class="link-btn danger" data-action="del-doc">Remover documento</button>'}
+            <button type="button" class="btn small primary" data-action="toggle-doc">Concluir</button>
+          </div>
+        </div>` : ''}
+      </div>`;
+  }
+
+  function renderDocs() {
+    const summary = docSummary();
+    docGroupsEl.innerHTML = state.travelers.map(name => {
+      const items = travelerDocItems(name);
+      const s = summary.perTraveler[name];
+      const statusHtml = s.alertas
+        ? `<span class="doc-trav-status ${s.ruins ? 'bad' : 'warn'}">${plural(s.alertas, 'alerta', 'alertas')}${s.pendentes ? ' · ' + s.pendentes + ' pend.' : ''}</span>`
+        : s.pendentes
+          ? `<span class="doc-trav-status warn">${plural(s.pendentes, 'pendente', 'pendentes')}</span>`
+          : '<span class="doc-trav-status ok">Tudo certo</span>';
+      const loose = (state.attachments[docKey(name)] || []).filter(f => !f.docItem || !items.some(it => it.id === f.docItem));
+      const looseHtml = loose.length ? `
+        <div class="doc-others-title">Outros arquivos</div>
+        <div class="attach-list" style="margin-top:4px;">${loose.map(f => `
+          <div class="attach-item">
+            <div class="name">📎 <span>${escapeHtml(f.name)}</span></div>
+            <div class="actions">
+              <button type="button" class="btn small" data-action="open-file" data-file="${escapeAttr(f.fileKey)}">Abrir</button>
+              <button type="button" class="btn small danger" data-action="del-file" data-file="${escapeAttr(f.fileKey)}">Remover</button>
+            </div>
+            <select class="doc-move" data-move-file="${escapeAttr(f.fileKey)}">
+              <option value="">Este arquivo é…</option>
+              ${items.map(it => `<option value="${escapeAttr(it.id)}">${escapeHtml(it.nome || 'Documento')}</option>`).join('')}
+            </select>
+          </div>`).join('')}</div>` : '';
+      return `
+        <div class="card" data-trav="${escapeAttr(name)}">
+          <div class="doc-trav-head">
+            <span class="doc-trav-name">${escapeHtml(name)}</span>
+            ${statusHtml}
+          </div>
+          ${items.map(it => docItemHtml(name, it)).join('')}
+          ${looseHtml}
+          ${docNewOpen.has(name) ? `
+          <div class="doc-new-row">
+            <input type="text" data-doc-new placeholder="Ex: Carteira de vacinação, CNH internacional">
+            <button type="button" class="btn" data-action="add-doc">Adicionar</button>
+          </div>` : ''}
+          <div class="doc-trav-foot">
+            <button type="button" class="link-btn" data-action="new-doc">${docNewOpen.has(name) ? 'Cancelar' : '+ Outro documento'}</button>
+            ${state.travelers.length > 1 ? '<button type="button" class="link-btn danger" data-action="rm-traveler">Remover viajante</button>' : ''}
+          </div>
+        </div>`;
+    }).join('');
+    const newInput = docGroupsEl.querySelector('[data-doc-new]');
+    if (newInput) newInput.focus();
+  }
+
+  function findDocCtx(el) {
+    const itemEl = el.closest('.doc-item');
+    const cardEl = el.closest('[data-trav]');
+    const name = cardEl ? cardEl.dataset.trav : null;
+    const item = itemEl && name ? travelerDocItems(name).find(it => it.id === itemEl.dataset.docId) : null;
+    return { name, item, itemEl };
+  }
+
+  function addCustomDoc(name, input) {
+    const nome = input.value.trim();
+    if (!nome) { input.focus(); return; }
+    const item = { id: uid(), nome, validade: '', naoPrecisa: false };
+    travelerDocItems(name).push(item);
+    docNewOpen.delete(name);
+    docItemOpen.add(name + '|' + item.id);
+    saveState();
+    renderDocs();
+    renderDashboard();
+  }
+
+  docGroupsEl.addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const { name, item } = findDocCtx(btn);
+    if (!name) return;
+    const action = btn.dataset.action;
+    if (action === 'toggle-doc' && item) {
+      const key = name + '|' + item.id;
+      if (docItemOpen.has(key)) docItemOpen.delete(key); else docItemOpen.add(key);
+      renderDocs();
+    } else if (action === 'open-file') {
+      const f = (state.attachments[docKey(name)] || []).find(x => x.fileKey === btn.dataset.file);
+      if (f) openPdfModal(f, f.name);
+    } else if (action === 'del-file') {
+      const list = state.attachments[docKey(name)] || [];
+      const idx = list.findIndex(x => x.fileKey === btn.dataset.file);
+      if (idx < 0 || !(await customConfirm('Remover o arquivo "' + list[idx].name + '"?'))) return;
+      await deleteFileEverywhere(list[idx].fileKey);
+      list.splice(idx, 1);
+      saveState();
+      renderDocs();
+      renderDashboard();
+    } else if (action === 'upload' && item) {
+      docUploadTarget = { name, itemId: item.id };
+      docUploadInput.click();
+    } else if (action === 'del-doc' && item) {
+      const files = docFiles(name, item.id);
+      if (!(await customConfirm('Remover "' + (item.nome || 'documento') + '"' + (files.length ? ' e ' + plural(files.length, 'arquivo anexado', 'arquivos anexados') : '') + '?'))) return;
+      for (const f of files) await deleteFileEverywhere(f.fileKey);
+      state.attachments[docKey(name)] = (state.attachments[docKey(name)] || []).filter(f => f.docItem !== item.id);
+      state.docInfo[name].items = state.docInfo[name].items.filter(it => it.id !== item.id);
+      docItemOpen.delete(name + '|' + item.id);
+      saveState();
+      renderDocs();
+      renderDashboard();
+    } else if (action === 'new-doc') {
+      if (docNewOpen.has(name)) docNewOpen.delete(name); else docNewOpen.add(name);
+      renderDocs();
+    } else if (action === 'add-doc') {
+      addCustomDoc(name, btn.closest('.doc-new-row').querySelector('[data-doc-new]'));
+    } else if (action === 'rm-traveler') {
+      removeTravelerGlobal(name);
+    }
   });
 
-  docUploadBtn.addEventListener('click', () => docUploadInput.click());
+  docGroupsEl.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || !e.target.matches('[data-doc-new]')) return;
+    addCustomDoc(findDocCtx(e.target).name, e.target);
+  });
+
+  // Nome: salva a cada tecla sem redesenhar (não perde o foco). Validade e
+  // "não preciso" redesenham para atualizar o status na hora.
+  docGroupsEl.addEventListener('input', (e) => {
+    const field = e.target.dataset.docField;
+    if (field !== 'nome') return;
+    const { item, itemEl } = findDocCtx(e.target);
+    if (!item) return;
+    item.nome = e.target.value;
+    itemEl.querySelector('.doc-label').textContent = item.nome || 'Documento';
+    saveState();
+  });
+  docGroupsEl.addEventListener('change', (e) => {
+    if (e.target.dataset.moveFile) {
+      const name = findDocCtx(e.target).name;
+      const f = (state.attachments[docKey(name)] || []).find(x => x.fileKey === e.target.dataset.moveFile);
+      if (!f || !e.target.value) return;
+      f.docItem = e.target.value;
+      saveState();
+      renderDocs();
+      renderDashboard();
+      return;
+    }
+    const field = e.target.dataset.docField;
+    if (field !== 'validade' && field !== 'naoPrecisa') return;
+    const { item } = findDocCtx(e.target);
+    if (!item) return;
+    item[field] = field === 'naoPrecisa' ? e.target.checked : e.target.value;
+    saveState();
+    renderDocs();
+    renderDashboard();
+  });
+
   docUploadInput.addEventListener('change', async () => {
-    const key = docKey(state.activeDocTraveler);
+    const target = docUploadTarget;
+    docUploadTarget = null;
+    if (!target) { docUploadInput.value = ''; return; }
+    const key = docKey(target.name);
     if (!state.attachments[key]) state.attachments[key] = [];
     for (const file of docUploadInput.files) {
       const data = await fileToDataUrl(file);
       const fileKey = uid();
       try {
         await idbSet(fileKey, data);
-        state.attachments[key].push({ name: file.name, fileKey });
+        state.attachments[key].push({ name: file.name, fileKey, docItem: target.itemId });
         fbFileSet(fileKey, data).catch(() => {});
       } catch (e) {
         alert('Não foi possível salvar o arquivo "' + file.name + '". Tente um arquivo menor.');
@@ -4635,10 +4942,21 @@
     }
     saveState();
     renderDocs();
+    renderDashboard();
     docUploadInput.value = '';
   });
 
-  renderDocTravelerChips();
+  document.getElementById('add-traveler-btn-doc').addEventListener('click', () => {
+    const input = document.getElementById('new-traveler-name-doc');
+    addTravelerGlobal(input.value.trim());
+    input.value = '';
+  });
+
+  function renderDocOutros() {
+    setupAttachZone(docKey('Outros'), document.getElementById('doc-outros-zone'), '+ Adicionar arquivo', 'Nenhum arquivo geral ainda.');
+  }
+
+  renderDocOutros();
   renderDocs();
 
   // ---------- Roteiro (um dia por linha + linha do tempo por horário) ----------
@@ -4962,6 +5280,7 @@
     const atts = state.attachments[key] || [];
     for (const a of atts) { await deleteFileEverywhere(a.fileKey); }
     delete state.attachments[key];
+    delete state.docInfo[name];
     if (state.activeChecklistTraveler === name) state.activeChecklistTraveler = state.travelers[0];
     if (state.activeDocTraveler === name) state.activeDocTraveler = state.travelers[0];
     saveState();
@@ -4972,8 +5291,8 @@
     renderTravelerChips();
     renderChecklist();
     renderExpenseTravelerOptions();
-    renderDocTravelerChips();
     renderDocs();
+    renderDashboard();
   }
 
   function renderTravelerChips() {
