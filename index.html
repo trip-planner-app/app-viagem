@@ -95,10 +95,11 @@
   }
 
   * { box-sizing: border-box; }
-  html, body { height: 100%; }
   /* O que aparece no "puxão" do iPhone acima/abaixo da página: mesmo azul
-     escuro do topo e da barra de abas, em vez do cinza do fundo. */
-  html { background: #131b2e; }
+     escuro do topo e da barra de abas, em vez do cinza do fundo. O body não
+     pode ter altura fixa (height:100%): com fundo próprio no html, tudo o que
+     passasse da primeira tela ficava sobre esse azul. */
+  html { min-height: 100%; background: #131b2e; }
   body {
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -779,7 +780,9 @@
   .dash-chip { flex: none; font-size: var(--fs-xs); font-weight: 700; background: var(--card2); border: 1px solid var(--border); color: var(--text); padding: 3px 9px; border-radius: var(--radius-pill); }
   .dash-chip.today { background: var(--accent); border-color: var(--accent); color: #fff; }
   .dash-empty { margin: 4px 0 2px; }
-  .dash-tiles, .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  /* grid-auto-rows: 1fr — todos os quadros de um bloco com a mesma altura,
+     mesmo quando um subtítulo quebra em duas linhas. */
+  .dash-tiles, .dash-grid { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: 10px; margin-bottom: 16px; }
   .dash-tile {
     display: flex; flex-direction: column; gap: 2px; min-width: 0;
     background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg);
@@ -790,7 +793,7 @@
   .dash-tile .val { font-size: var(--fs-xl); font-weight: 800; line-height: 1.25; }
   .dash-tile .val.good { color: var(--good); }
   .dash-tile .val.neg { color: var(--danger); }
-  .dash-tile .sub { font-size: var(--fs-xs); color: var(--muted); }
+  .dash-tile .sub { font-size: var(--fs-xs); color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .dash-tile .ico { color: var(--accent2); margin-bottom: 4px; display: flex; }
   .dash-tile .ico svg { width: 20px; height: 20px; }
   .dash-tile.empty .ico { color: var(--muted); }
@@ -3322,6 +3325,8 @@
         <span class="val ${remaining < 0 ? 'neg' : 'good'}">${fmtMoney(remaining, state.budgetCurrency)}</span>
         <span class="sub">de ${fmtMoney(state.budgetTotal, state.budgetCurrency)}</span>
         <span class="dash-bar"><span class="fill${remaining < 0 ? ' neg' : ''}" style="width:${pct}%"></span></span>
+        <span class="dash-trav"><span>Gasto</span><span>${fmtMoney(spent, state.budgetCurrency)}</span></span>
+        ${getTripDays().includes(today) ? `<span class="dash-trav"><span>Hoje</span><span>${fmtMoney(state.expenses.filter(e => e.tripDate === today && (e.currency || state.budgetCurrency) === state.budgetCurrency).reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0), state.budgetCurrency)}</span></span>` : ''}
       </button>`;
     } else if (state.expenses.length) {
       saldoTile = `<button type="button" class="dash-tile" data-goto-tab="orcamento">
