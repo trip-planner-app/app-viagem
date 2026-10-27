@@ -9,6 +9,14 @@
 <meta name="apple-mobile-web-app-title" content="Viagem">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#131b2e">
+<script>
+  // Tema escolhido em Configurações (vale só para este aparelho). Sem
+  // escolha, segue o claro/escuro do sistema.
+  try {
+    var t = localStorage.getItem('viagemEuaApp_theme');
+    if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+  } catch (e) {}
+</script>
 <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
@@ -56,8 +64,9 @@
     --radius-lg: 16px;   /* card principal, modais */
     --radius-pill: 999px; /* pílulas/badges */
   }
+  /* Escuro: automático (sistema) ou escolhido em Configurações. */
   @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme="light"]) {
       --bg: #13151d;
       --card: #1c1f2a;
       --card2: #262a37;
@@ -71,8 +80,25 @@
       --chip-bg: rgba(23,184,168,.16);
     }
   }
+  :root[data-theme="dark"] {
+    --bg: #13151d;
+    --card: #1c1f2a;
+    --card2: #262a37;
+    --accent: #ff8a52;
+    --accent2: #17b8a8;
+    --danger: #ff6b81;
+    --good: #3fb950;
+    --text: #e9ecf5;
+    --muted: #9099b3;
+    --border: #333849;
+    --chip-bg: rgba(23,184,168,.16);
+  }
+
   * { box-sizing: border-box; }
   html, body { height: 100%; }
+  /* O que aparece no "puxão" do iPhone acima/abaixo da página: mesmo azul
+     escuro do topo e da barra de abas, em vez do cinza do fundo. */
+  html { background: #131b2e; }
   body {
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -637,7 +663,7 @@
   .sidebar {
     background:
       linear-gradient(180deg, rgba(10,16,32,.55), rgba(10,16,32,.3) 45%, rgba(10,16,32,.45) 100%),
-      url('https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=600&q=70') center/cover;
+      image-set(url('https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=900&q=80') 1x, url('https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1800&q=80') 2x) center/cover;
   }
 
   /* ---------------- Main content ---------------- */
@@ -1085,6 +1111,9 @@
 
   /* ---------------- Configurações ---------------- */
   .settings-list { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+  .theme-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; background: var(--card2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px; }
+  .theme-seg button { background: none; border: none; border-radius: var(--radius-xs); padding: 8px 4px; font-family: inherit; font-size: var(--fs-sm); font-weight: 700; color: var(--muted); cursor: pointer; }
+  .theme-seg button.active { background: var(--card); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,.12); }
   .settings-row {
     display: flex;
     align-items: center;
@@ -1164,24 +1193,26 @@
   .expense-amount-row { display: flex; gap: 8px; align-items: stretch; }
   .expense-amount-row .expense-amount-input { flex: 1; min-width: 0; font-size: var(--fs-xl); font-weight: 800; text-align: center; }
   .expense-cur-btn { flex: none; background: var(--card2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0 14px; font-family: inherit; font-size: var(--fs-sm); font-weight: 800; color: var(--accent2); cursor: pointer; }
-  .cat-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
-  .cat-chip { background: var(--card2); border: 1px solid var(--border); color: var(--text); border-radius: var(--radius-pill); padding: 6px 12px; font-family: inherit; font-size: var(--fs-sm); font-weight: 600; cursor: pointer; }
-  .cat-chip.active { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+  /* Categoria, quem pagou e dia lado a lado, em duas colunas; o que não se
+     aplica fica oculto (ver layoutExpenseMetaGrid). */
+  .expense-meta-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 8px; margin-top: 12px; }
+  .expense-meta-grid > .field.span-all { grid-column: 1 / -1; }
+  #expense-list { margin-top: 18px; }
+  .exp-day { margin-top: 14px; }
+  .exp-day:first-child { margin-top: 0; }
+  .exp-day-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); font-size: var(--fs-xs); font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .exp-day-head .tot { text-transform: none; letter-spacing: 0; color: var(--text); font-weight: 800; font-size: var(--fs-sm); }
+  .exp-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px dashed var(--border); }
+  .exp-row:last-child { border-bottom: none; }
+  .exp-ico { flex: none; width: 34px; height: 34px; border-radius: 50%; background: var(--chip-bg); display: flex; align-items: center; justify-content: center; font-size: 17px; }
+  .exp-info { flex: 1; min-width: 0; }
+  .exp-title { display: block; font-size: var(--fs-md); font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .exp-sub { display: block; font-size: var(--fs-xs); color: var(--muted); }
+  .exp-amt { flex: none; font-weight: 800; color: var(--text); font-size: var(--fs-md); }
+  .exp-del { flex: none; background: none; border: none; color: var(--muted); font-size: var(--fs-md); padding: 4px 2px 4px 6px; cursor: pointer; line-height: 1; }
+  .exp-more { display: block; width: 100%; margin-top: 12px; text-align: center; }
   .progress-bar { height: 8px; border-radius: var(--radius-pill); background: var(--card2); overflow: hidden; margin-top: 10px; }
   .progress-bar .fill { height: 100%; background: var(--accent); }
-  .expense-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: var(--card2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: 10px 12px;
-    margin-bottom: 8px;
-    font-size: var(--fs-base);
-  }
-  .expense-item .meta { color: var(--muted); font-size: var(--fs-xs); }
-  .expense-item .amt { font-weight: 800; color: var(--accent); flex: none; margin-left: 8px; }
   .cat-pill { font-size: var(--fs-2xs); background: var(--chip-bg); color: var(--accent2); padding: 2px 7px; border-radius: var(--radius-pill); margin-right: 6px; font-weight: 700; }
   .breakdown-currency-title { font-size: var(--fs-sm); font-weight: 800; color: var(--accent2); margin-bottom: 8px; }
   .breakdown-group-title { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 700; margin: 12px 0 8px; }
@@ -1380,6 +1411,21 @@
   #print-export .pe-day { margin-bottom: 16px; break-inside: avoid; }
   #print-export .pe-day .pe-day-title { font-weight: 800; font-size: var(--fs-md); margin-bottom: 6px; }
   #print-export .pe-empty { font-size: var(--fs-sm); color: #666; font-style: italic; }
+  /* A barra de status do iPhone é transparente (black-translucent): com a
+     foto atrás fica ótimo, mas ao rolar o conteúdo passava por baixo da
+     hora/bateria. Esta faixa só aparece quando a foto já saiu da tela. */
+  .status-scrim {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: env(safe-area-inset-top);
+    background: #131b2e;
+    z-index: 950;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .15s ease;
+  }
+  body.header-scrolled-away .status-scrim { opacity: 1; }
+
   /* ---------------- Aviso de nova versão disponível ---------------- */
   #update-banner {
     display: none;
@@ -1425,6 +1471,7 @@
 </head>
 <body class="on-home-tab">
 
+<div class="status-scrim" id="status-scrim"></div>
 <div id="update-banner">
   <span>🔄 Nova versão do app disponível.</span>
   <button type="button" id="update-reload-btn">Atualizar agora</button>
@@ -1669,9 +1716,11 @@
         <label class="field-label">Moeda deste gasto</label>
         <select id="expense-currency"></select>
       </div>
-      <div class="cat-chips" id="expense-category-chips"></div>
-      <input type="text" id="expense-desc" placeholder="Descrição (opcional) — ex: Ingresso Universal">
-      <div class="field-row" style="margin-top:10px;">
+      <div class="expense-meta-grid">
+        <div class="field">
+          <label class="field-label">Categoria</label>
+          <select id="expense-category"></select>
+        </div>
         <div class="field" id="expense-traveler-field">
           <label class="field-label">Quem pagou</label>
           <select id="expense-traveler"></select>
@@ -1681,8 +1730,9 @@
           <select id="expense-day"></select>
         </div>
       </div>
-      <button class="btn primary" id="add-expense-btn" style="width:100%; margin-top:4px;">+ Lançar gasto</button>
-      <div id="expense-list" style="margin-top:16px;"></div>
+      <input type="text" id="expense-desc" placeholder="Descrição (opcional) — ex: Ingresso Universal">
+      <button class="btn primary" id="add-expense-btn" style="width:100%; margin-top:12px;">+ Lançar gasto</button>
+      <div id="expense-list"></div>
       <p class="attach-empty" id="expense-empty" style="display:none;">Nenhum gasto lançado ainda.</p>
     </div>
 
@@ -1719,6 +1769,16 @@
         <button type="button" class="settings-row" id="trip-code-toggle"><svg class="settings-row-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>Compartilhar e gerenciar viagem<svg class="settings-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
         <button type="button" class="settings-row" id="new-trip-btn"><svg class="settings-row-icon primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Iniciar nova viagem<svg class="settings-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
       </div>
+    </div>
+
+    <div class="card">
+      <h3>Aparência</h3>
+      <div class="theme-seg" id="theme-seg" role="radiogroup" aria-label="Tema">
+        <button type="button" data-theme-opt="auto" role="radio">Automático</button>
+        <button type="button" data-theme-opt="light" role="radio">Claro</button>
+        <button type="button" data-theme-opt="dark" role="radio">Escuro</button>
+      </div>
+      <p class="hint" id="theme-hint" style="margin:8px 0 0;"></p>
     </div>
 
     <div class="card">
@@ -3440,7 +3500,7 @@
     const file = heroPhotoInput.files[0];
     if (!file) return;
     try {
-      const data = await compressImage(file, 1000);
+      const data = await compressImage(file, 1600);
       await idbSet('heroImage', data);
       state.heroImage = true;
       saveState();
@@ -3567,6 +3627,47 @@
   const moreTabBtn = document.getElementById('more-tab-btn');
   const moreSheetOverlay = document.getElementById('more-sheet-overlay');
 
+  // Faixa atrás da barra de status: liga quando o topo (foto) já rolou
+  // para baixo da hora/bateria.
+  const statusScrimEl = document.getElementById('status-scrim');
+  const appSidebarEl = document.getElementById('app-sidebar');
+  function updateStatusScrim() {
+    const away = appSidebarEl.getBoundingClientRect().bottom <= statusScrimEl.offsetHeight;
+    document.body.classList.toggle('header-scrolled-away', away);
+  }
+  window.addEventListener('scroll', updateStatusScrim, { passive: true });
+  window.addEventListener('resize', updateStatusScrim);
+
+  // ---------- Tema (Automático / Claro / Escuro) ----------
+  // Preferência do aparelho, não da viagem: fica no localStorage e não vai
+  // pro Firebase (cada viajante escolhe o seu).
+  function currentThemeChoice() {
+    try { return localStorage.getItem('viagemEuaApp_theme') || 'auto'; } catch (e) { return 'auto'; }
+  }
+  function renderThemeSeg() {
+    const choice = currentThemeChoice();
+    document.querySelectorAll('#theme-seg [data-theme-opt]').forEach(b => {
+      b.classList.toggle('active', b.dataset.themeOpt === choice);
+      b.setAttribute('aria-checked', b.dataset.themeOpt === choice);
+    });
+    document.getElementById('theme-hint').textContent = choice === 'auto'
+      ? 'Segue o modo claro/escuro do celular.'
+      : 'Vale só para este aparelho.';
+  }
+  document.getElementById('theme-seg').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-theme-opt]');
+    if (!btn) return;
+    const choice = btn.dataset.themeOpt;
+    try {
+      if (choice === 'auto') localStorage.removeItem('viagemEuaApp_theme');
+      else localStorage.setItem('viagemEuaApp_theme', choice);
+    } catch (err) {}
+    if (choice === 'auto') delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = choice;
+    renderThemeSeg();
+  });
+  renderThemeSeg();
+
   function showTab(tab) {
     buttons.forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     moreTabBtn.classList.toggle('active', MORE_TABS.includes(tab));
@@ -3575,6 +3676,7 @@
     document.body.classList.toggle('on-home-tab', tab === 'resumo');
     moreSheetOverlay.classList.remove('open');
     window.scrollTo(0, 0);
+    updateStatusScrim();
     if (tab === 'resumo') renderDashboard();
     if (tab === 'voos') renderVoos();
     if (tab === 'hoteis') renderHoteis();
@@ -5370,7 +5472,7 @@
   const budgetCurrencySelect = document.getElementById('budget-currency');
   const expenseCurBtn = document.getElementById('expense-cur-btn');
   const expenseCurrencyFieldEl = document.getElementById('expense-currency-field');
-  const expenseCategoryChipsEl = document.getElementById('expense-category-chips');
+  const expenseCategorySelect = document.getElementById('expense-category');
   const expenseCurrencySelect = document.getElementById('expense-currency');
   const expenseTravelerSelect = document.getElementById('expense-traveler');
   const expenseListEl = document.getElementById('expense-list');
@@ -5406,19 +5508,16 @@
 
   // Lançamento rápido: valor + categoria em um toque. A moeda vem de
   // Configurações; outra moeda só aparece se o usuário tocar no código.
-  const EXPENSE_CATEGORIES = ['Alimentação', 'Transporte', 'Compras', 'Lazer', 'Crianças', 'Presentes', 'Outros'];
-  let expenseCategory = 'Alimentação';
-  function renderExpenseCategoryChips() {
-    expenseCategoryChipsEl.innerHTML = EXPENSE_CATEGORIES.map(c =>
-      `<button type="button" class="cat-chip${c === expenseCategory ? ' active' : ''}" data-cat="${escapeAttr(c)}">${escapeHtml(c)}</button>`).join('');
+  // O nome gravado no gasto é só o texto (sem o ícone), como sempre foi.
+  const EXPENSE_CATEGORIES = [
+    ['Alimentação', '🍽️'], ['Transporte', '🚕'], ['Compras', '🛍️'], ['Lazer', '🎢'],
+    ['Crianças', '🧸'], ['Presentes', '🎁'], ['Outros', '📦']
+  ];
+  function expenseCategoryIcon(name) {
+    const found = EXPENSE_CATEGORIES.find(([c]) => c === name);
+    return found ? found[1] : '💵';
   }
-  renderExpenseCategoryChips();
-  expenseCategoryChipsEl.addEventListener('click', (e) => {
-    const chip = e.target.closest('[data-cat]');
-    if (!chip) return;
-    expenseCategory = chip.dataset.cat;
-    renderExpenseCategoryChips();
-  });
+  expenseCategorySelect.innerHTML = EXPENSE_CATEGORIES.map(([c, ico]) => `<option value="${escapeAttr(c)}">${ico}  ${escapeHtml(c)}</option>`).join('');
   expenseCurBtn.addEventListener('click', () => {
     const open = expenseCurrencyFieldEl.style.display === 'none';
     expenseCurrencyFieldEl.style.display = open ? '' : 'none';
@@ -5505,6 +5604,13 @@
   fxForeignInput.addEventListener('input', () => recalcFx('foreign'));
   fxRefreshBtn.addEventListener('click', refreshFxRate);
 
+  // Se sobrar um campo sozinho na última linha, ele ocupa a largura toda.
+  function layoutExpenseMetaGrid() {
+    const fields = [...document.querySelectorAll('.expense-meta-grid > .field')];
+    const shown = fields.filter(f => f.style.display !== 'none');
+    fields.forEach(f => f.classList.toggle('span-all', shown.length % 2 === 1 && f === shown[shown.length - 1]));
+  }
+
   function renderExpenseTravelerOptions() {
     const prev = expenseTravelerSelect.value;
     // Com um viajante só, não há o que escolher.
@@ -5517,6 +5623,7 @@
       expenseTravelerSelect.appendChild(opt);
     });
     if (state.travelers.includes(prev)) expenseTravelerSelect.value = prev;
+    layoutExpenseMetaGrid();
   }
 
   // Só existe uma lista de "dias da viagem" pra escolher quando dá pra
@@ -5524,11 +5631,9 @@
   // cadastrado, o campo fica oculto e o gasto cai no dia real do lançamento.
   function renderExpenseDayOptions() {
     const tripDays = getTripDays();
-    if (!tripDays.length) {
-      expenseDayFieldEl.style.display = 'none';
-      return;
-    }
-    expenseDayFieldEl.style.display = '';
+    expenseDayFieldEl.style.display = tripDays.length ? '' : 'none';
+    layoutExpenseMetaGrid();
+    if (!tripDays.length) return;
     const today = localDateStr();
     const prevValue = expenseDaySelect.value;
     expenseDaySelect.innerHTML = '';
@@ -5743,6 +5848,9 @@
     }).join('');
   }
 
+  // Lista agrupada por dia (mais recente primeiro), com o total do dia.
+  // Só os 3 dias mais recentes ficam à vista; o resto abre em "Ver todos".
+  let expenseShowAll = false;
   function renderExpenses() {
     expenseListEl.innerHTML = '';
     if (state.expenses.length === 0) {
@@ -5750,31 +5858,72 @@
       return;
     }
     expenseEmptyEl.style.display = 'none';
-    state.expenses.slice().reverse().forEach((exp) => {
-      const realIdx = state.expenses.indexOf(exp);
-      const item = document.createElement('div');
-      item.className = 'expense-item';
-      item.innerHTML = `
-        <div style="min-width:0; flex:1;">
-          <div><span class="cat-pill">${escapeHtml(exp.category)}</span>${exp.desc ? `<strong>${escapeHtml(exp.desc)}</strong>` : ''}</div>
-          <div class="meta">${escapeHtml([exp.tripDate ? fmtDayMonth(exp.tripDate) : '', state.travelers.length > 1 ? exp.traveler : ''].filter(Boolean).join(' · '))}</div>
-        </div>
-        <div class="amt">${fmtMoney(exp.amount, exp.currency || state.budgetCurrency)}</div>
-        <button class="btn danger small" data-action="del-exp" style="margin-left:8px;">✕</button>`;
-      item.querySelector('[data-action="del-exp"]').addEventListener('click', () => {
-        state.expenses.splice(realIdx, 1);
-        saveState();
-        renderExpenses();
-        renderBudgetSummary();
-        renderDailyBudgets();
-      });
-      expenseListEl.appendChild(item);
+    const today = localDateStr();
+    const groups = new Map();
+    state.expenses.forEach((exp, idx) => {
+      const day = exp.tripDate || '';
+      if (!groups.has(day)) groups.set(day, []);
+      groups.get(day).push(idx);
     });
+    const days = [...groups.keys()].sort((a, b) => b.localeCompare(a));
+    const visible = expenseShowAll ? days : days.slice(0, 3);
+    const multiTraveler = state.travelers.length > 1;
+    expenseListEl.innerHTML = visible.map(day => {
+      const idxs = groups.get(day).slice().reverse();
+      const totals = {};
+      idxs.forEach(i => {
+        const e = state.expenses[i];
+        const cur = e.currency || state.budgetCurrency;
+        totals[cur] = (totals[cur] || 0) + (parseFloat(e.amount) || 0);
+      });
+      const totalTxt = Object.keys(totals).sort((a, b) => (a === state.budgetCurrency ? -1 : b === state.budgetCurrency ? 1 : 0)).map(c => fmtMoney(totals[c], c)).join(' + ');
+      const label = day ? (day === today ? 'Hoje · ' : '') + fmtWeekdayDate(day) : 'Sem data';
+      return `
+        <div class="exp-day">
+          <div class="exp-day-head"><span>${escapeHtml(label)}</span><span class="tot">${escapeHtml(totalTxt)}</span></div>
+          ${idxs.map(i => {
+            const e = state.expenses[i];
+            const sub = [e.desc ? e.category : '', multiTraveler ? e.traveler : ''].filter(Boolean).join(' · ');
+            return `
+            <div class="exp-row">
+              <span class="exp-ico">${expenseCategoryIcon(e.category)}</span>
+              <span class="exp-info">
+                <span class="exp-title">${escapeHtml(e.desc || e.category)}</span>
+                ${sub ? `<span class="exp-sub">${escapeHtml(sub)}</span>` : ''}
+              </span>
+              <span class="exp-amt">${fmtMoney(e.amount, e.currency || state.budgetCurrency)}</span>
+              <button type="button" class="exp-del" data-del-exp="${i}" aria-label="Apagar gasto">✕</button>
+            </div>`;
+          }).join('')}
+        </div>`;
+    }).join('') + (days.length > 3
+      ? `<button type="button" class="btn small exp-more" data-action="exp-more">${expenseShowAll ? 'Mostrar só os dias recentes' : 'Ver todos os dias (' + days.length + ')'}</button>`
+      : '');
   }
+
+  expenseListEl.addEventListener('click', async (e) => {
+    if (e.target.closest('[data-action="exp-more"]')) {
+      expenseShowAll = !expenseShowAll;
+      renderExpenses();
+      return;
+    }
+    const del = e.target.closest('[data-del-exp]');
+    if (!del) return;
+    const idx = parseInt(del.dataset.delExp, 10);
+    const exp = state.expenses[idx];
+    if (!exp) return;
+    if (!(await customConfirm('Apagar o gasto "' + (exp.desc || exp.category) + '" de ' + fmtMoney(exp.amount, exp.currency || state.budgetCurrency) + '?'))) return;
+    state.expenses.splice(idx, 1);
+    saveState();
+    renderExpenses();
+    renderBudgetSummary();
+    renderDailyBudgets();
+    renderDashboard();
+  });
 
   document.getElementById('add-expense-btn').addEventListener('click', () => {
     const traveler = expenseTravelerSelect.value;
-    const category = expenseCategory;
+    const category = expenseCategorySelect.value;
     const amount = parseFloat(document.getElementById('expense-amount').value);
     const currency = expenseCurrencySelect.value;
     const desc = document.getElementById('expense-desc').value.trim();
