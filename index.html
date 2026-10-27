@@ -1179,6 +1179,13 @@
   .more-sheet-item .icon { display: flex; flex: none; color: var(--muted); }
   .more-sheet-item .icon svg { width: 20px; height: 20px; }
   .more-sheet-item.active, .more-sheet-item.active .icon { color: var(--accent); }
+  /* Gasto de hoje x teto do dia (só durante a viagem); toca e abre o dia. */
+  .budget-today { display: block; width: 100%; margin-top: 12px; background: var(--card2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px 12px; text-align: left; font-family: inherit; color: var(--text); cursor: pointer; }
+  .budget-today .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .budget-today .lbl { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 700; }
+  .budget-today .amt { font-size: var(--fs-md); font-weight: 800; }
+  .budget-today .amt .cta { font-size: var(--fs-xs); font-weight: 700; color: var(--accent2); text-decoration: underline; text-underline-offset: 2px; margin-left: 6px; }
+  .budget-today .dash-bar { margin-top: 8px; }
   .budget-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
   .budget-stat { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: var(--card2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px 4px; min-width: 0; }
   .budget-stat .lbl { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 700; }
@@ -1677,6 +1684,10 @@
       </div>
       <div class="progress-bar" id="budget-bar"><div class="fill" id="budget-fill" style="width:0%"></div></div>
       <div class="hint" id="budget-other-currencies" style="margin-top:8px; display:none;"></div>
+      <button type="button" class="budget-today" id="budget-today" style="display:none;">
+        <span class="top"><span class="lbl">Hoje</span><span class="amt" id="budget-today-amt"></span></span>
+        <span class="dash-bar" id="budget-today-bar"><span class="fill" id="budget-today-fill"></span></span>
+      </button>
       <button type="button" class="link-btn" id="budget-config-link" data-goto-tab="config" style="margin-top:8px;">Alterar em Configurações</button>
     </div>
 
@@ -5688,7 +5699,42 @@
     return totals;
   }
 
+  function renderBudgetToday() {
+    const el = document.getElementById('budget-today');
+    const today = localDateStr();
+    if (!getTripDays().includes(today)) { el.style.display = 'none'; return; }
+    el.style.display = '';
+    const cap = state.dailyBudgets[today] || 0;
+    const spent = (dailyExpenseTotals()[today] || {})[state.budgetCurrency] || 0;
+    const amtEl = document.getElementById('budget-today-amt');
+    const barEl = document.getElementById('budget-today-bar');
+    if (cap > 0) {
+      amtEl.textContent = fmtMoney(spent, state.budgetCurrency) + ' / ' + fmtMoney(cap, state.budgetCurrency);
+      const pct = spent / cap * 100;
+      const fill = document.getElementById('budget-today-fill');
+      fill.style.width = Math.min(100, pct) + '%';
+      fill.style.background = pct >= 100 ? 'var(--danger)' : pct >= 75 ? 'var(--accent)' : 'var(--good)';
+      barEl.style.display = '';
+    } else {
+      amtEl.innerHTML = escapeHtml(fmtMoney(spent, state.budgetCurrency)) + '<span class="cta">definir teto do dia</span>';
+      barEl.style.display = 'none';
+    }
+  }
+
+  // Abre o card do teto já no dia de hoje.
+  document.getElementById('budget-today').addEventListener('click', () => {
+    const today = localDateStr();
+    dailyBudgetExpanded = true;
+    expandedBudgetDays.add(today);
+    renderDailyBudgets();
+    const row = document.querySelector('#daily-budget-list .daily-budget-row.today');
+    (row || document.getElementById('daily-budget-card')).scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const input = row && row.querySelector('.daily-cap-input');
+    if (input && !input.value) input.focus({ preventScroll: true });
+  });
+
   function renderDailyBudgets() {
+    renderBudgetToday();
     const tripDays = getTripDays();
     const totals = dailyExpenseTotals();
     const today = localDateStr();
@@ -5771,6 +5817,7 @@
         else state.dailyBudgets[date] = val;
         saveState();
         paint(state.dailyBudgets[date] || 0);
+        renderBudgetToday();
       });
 
       const summaryEl = row.querySelector('.daily-budget-row-summary');
