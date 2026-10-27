@@ -157,15 +157,6 @@
     padding: 2px 0;
     border-bottom: 1px dashed rgba(255,255,255,.35);
   }
-  .sidebar-hero input.subtitle-input {
-    background: transparent;
-    border: none;
-    color: #dbe1f5;
-    font-size: var(--fs-sm);
-    width: 100%;
-    padding: 4px 0 0;
-    margin-top: 4px;
-  }
   .sidebar-hero input::placeholder { color: rgba(255,255,255,.6); }
   .sidebar-hero .countdown {
     display: inline-block;
@@ -730,25 +721,66 @@
   .arrow-icon { width: 22px; height: 22px; }
   .flight-meta { font-size: var(--fs-sm); color: var(--muted); margin-top: 4px; }
 
-  /* Resumo automático da viagem (aba Início) — calculado a partir dos voos
-     cadastrados, sem campos pra preencher. */
-  .resumo-auto-summary { margin-top: 6px; }
-  .resumo-auto-divider { margin: 4px 0 10px; border-top: 1px dashed var(--border); }
-  .resumo-auto-stat { display: flex; justify-content: center; align-items: baseline; gap: 8px; margin: 4px 0 6px; }
-  .resumo-auto-stat-label { font-size: var(--fs-sm); color: var(--muted); font-weight: 600; }
-  .resumo-auto-stat-value { font-size: var(--fs-xl); color: var(--text); font-weight: 800; }
-  .resumo-auto-leg { margin-top: 6px; }
-  .resumo-auto-leg-label {
-    display: block;
-    text-align: center;
-    font-size: var(--fs-xs);
-    color: var(--accent2);
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: .03em;
+  /* ---------------- Painel da Início ----------------
+     Cada bloco aparece "cheio" quando o dado existe; o que ainda não foi
+     preenchido vira um convite discreto, nunca um campo obrigatório. */
+  .dash-header { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; }
+  .dash-header-main { flex: 1; min-width: 0; }
+  .dash-eyebrow { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 700; }
+  .dash-destinos { font-size: var(--fs-xl); font-weight: 800; color: var(--text); margin: 2px 0 3px; line-height: 1.25; }
+  .dash-destinos.empty { color: var(--muted); font-size: var(--fs-lg); }
+  .dash-period { font-size: var(--fs-sm); color: var(--muted); margin-bottom: 6px; }
+  .dash-days-box { flex: none; min-width: 66px; text-align: center; background: var(--card2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 8px 10px; }
+  .dash-days-box .num { font-size: var(--fs-xl); font-weight: 800; color: var(--text); line-height: 1.15; }
+  .dash-days-box .lbl { font-size: var(--fs-2xs); color: var(--muted); font-weight: 600; line-height: 1.3; }
+  .dash-destinos-editor { flex-basis: 100%; border-top: 1px dashed var(--border); padding-top: 12px; }
+  .dash-destinos-editor[hidden] { display: none; }
+  .dash-card-title { font-size: var(--fs-lg); font-weight: 800; color: var(--text); margin: 0 0 6px; }
+  .dash-section-title { font-size: var(--fs-lg); font-weight: 800; color: var(--text); margin: 6px 2px 10px; }
+  .dash-row {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    background: none; border: none; border-top: 1px solid var(--border);
+    padding: 11px 0; text-align: left; cursor: pointer; color: var(--text); font-family: inherit;
   }
-  .resumo-auto-leg .flight-leg { padding: 2px 0 10px; }
-  .resumo-auto-empty { text-align: center; margin: 14px 0 0; }
+  .dash-row:first-child { border-top: none; }
+  .dash-row .ico { flex: none; width: 36px; height: 36px; border-radius: 10px; background: var(--chip-bg); color: var(--accent2); display: flex; align-items: center; justify-content: center; }
+  .dash-row .ico svg { width: 18px; height: 18px; }
+  .dash-row .txt { flex: 1; min-width: 0; }
+  .dash-row .t, .dash-row .s { display: block; }
+  .dash-row .t { font-size: var(--fs-md); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dash-row .s { font-size: var(--fs-sm); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dash-row .chev { flex: none; width: 16px; height: 16px; color: var(--muted); }
+  .dash-chip { flex: none; font-size: var(--fs-xs); font-weight: 700; background: var(--card2); border: 1px solid var(--border); color: var(--text); padding: 3px 9px; border-radius: var(--radius-pill); }
+  .dash-chip.today { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .dash-empty { margin: 4px 0 2px; }
+  .dash-tiles, .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .dash-tile {
+    display: flex; flex-direction: column; gap: 2px; min-width: 0;
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+    padding: 14px; text-align: left; cursor: pointer; color: var(--text); font-family: inherit;
+    box-shadow: 0 2px 10px rgba(30,40,70,.05);
+  }
+  .dash-tile .lbl { font-size: var(--fs-xs); color: var(--muted); font-weight: 700; }
+  .dash-tile .val { font-size: var(--fs-xl); font-weight: 800; line-height: 1.25; }
+  .dash-tile .val.good { color: var(--good); }
+  .dash-tile .val.neg { color: var(--danger); }
+  .dash-tile .sub { font-size: var(--fs-xs); color: var(--muted); }
+  .dash-tile .ico { color: var(--accent2); margin-bottom: 4px; display: flex; }
+  .dash-tile .ico svg { width: 20px; height: 20px; }
+  .dash-tile.empty .ico { color: var(--muted); }
+  .dash-grid .dash-tile .val { font-size: var(--fs-md); }
+  .dash-bar { display: block; height: 6px; background: var(--card2); border-radius: 3px; overflow: hidden; margin-top: 6px; }
+  .dash-bar .fill { display: block; height: 100%; border-radius: 3px; background: var(--accent2); }
+  .dash-bar .fill.neg { background: var(--danger); }
+  .dash-trav { display: flex; justify-content: space-between; gap: 6px; font-size: var(--fs-2xs); color: var(--muted); margin-top: 4px; }
+  .dash-trav span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  @media (min-width: 900px) { .dash-grid { grid-template-columns: repeat(4, 1fr); } }
+  /* Destaque rápido do card ao chegar nele por um atalho do painel. */
+  .flash-highlight { animation: flash-highlight 1.6s ease; }
+  @keyframes flash-highlight {
+    0%, 45% { box-shadow: 0 0 0 3px var(--accent2); }
+    100% { box-shadow: 0 0 0 3px transparent; }
+  }
   .tag {
     display: inline-block;
     font-size: var(--fs-xs);
@@ -831,6 +863,8 @@
   .traveler-chip:active,
   .hero-photo-btn:active,
   .settings-row:active,
+  .dash-row:active,
+  .dash-tile:active,
   .more-sheet-item:active,
   .account-modal-close-x:active {
     transform: scale(0.96);
@@ -1137,6 +1171,17 @@
     .sidebar nav { display: none; }
     .bottom-tabbar { display: flex; }
     main { padding: 20px 14px calc(78px + env(safe-area-inset-bottom)); }
+    /* Fora da Início o topo encolhe pra só a marca — sobra mais tela pro
+       conteúdo (foto, contagem e clima ficam no painel da Início). */
+    body:not(.on-home-tab) .sidebar-hero { display: none; }
+    /* Na Início também mais enxuto: menos respiro em volta do título, da
+       contagem e do status — o detalhe da viagem está no painel logo abaixo. */
+    .sidebar { padding-bottom: 10px; }
+    .app-wordmark { margin-bottom: 10px; }
+    .sidebar-hero { padding: 4px 12px 0; margin-bottom: 0; }
+    .sidebar-hero .countdown, .weather-badge { margin-top: 8px; }
+    .sync-status { margin-top: 6px; }
+    body:not(.on-home-tab) .app-wordmark { margin-bottom: 0; }
   }
 
   /* Visualizador de PDF embutido (evita depender de abas/pop-ups) */
@@ -1326,7 +1371,6 @@
     <button class="hero-photo-btn" id="hero-photo-btn" type="button" aria-label="Trocar foto" title="Trocar foto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
     <input type="file" id="hero-photo-input" accept="image/*">
     <input type="text" class="title-input" id="trip-title-input" placeholder="Nome da viagem">
-    <input type="text" class="subtitle-input" id="trip-subtitle-input" placeholder="Datas / destino">
     <div class="countdown" id="countdown">calculando...</div>
     <a class="weather-badge" id="weather-badge" href="#" target="_blank" rel="noopener"></a>
     <div class="trip-alert-badge" id="trip-alert-badge"></div>
@@ -1371,18 +1415,39 @@
 
   <!-- RESUMO -->
   <div class="tab active" id="resumo">
-    <div class="page-title">Visão geral</div>
-    <div class="card">
-      <h3>📍 Visão geral da viagem</h3>
-      <div class="field">
-        <label class="field-label">Destinos</label>
+    <div class="card dash-header">
+      <div class="dash-header-main">
+        <div class="dash-eyebrow" id="dash-eyebrow">Sua viagem</div>
+        <div class="dash-destinos" id="dash-destinos"></div>
+        <div class="dash-period" id="dash-period"></div>
+        <button type="button" class="link-btn" id="dash-edit-destinos-btn">Editar destinos</button>
+      </div>
+      <div class="dash-days-box" id="dash-days-box" hidden></div>
+      <div class="dash-destinos-editor" id="dash-destinos-editor" hidden>
         <div class="traveler-select" id="resumo-destinos-list"></div>
         <div class="add-row">
           <input type="text" id="new-destino-name" placeholder="Ex: Orlando">
           <button class="btn" id="add-destino-btn">+ Adicionar</button>
         </div>
       </div>
-      <div id="resumo-auto-summary" class="resumo-auto-summary"></div>
+    </div>
+
+    <div class="card">
+      <div class="dash-card-title">Próximos compromissos</div>
+      <div id="dash-next"></div>
+    </div>
+
+    <div class="dash-tiles" id="dash-tiles"></div>
+
+    <div class="dash-section-title">Sua viagem organizada</div>
+    <div class="dash-grid" id="dash-grid"></div>
+
+    <div class="card" id="dash-actions">
+      <div class="dash-card-title">Ações rápidas</div>
+        <button type="button" class="dash-row" data-dash-action="voo"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><path d="M22 2L15 22l-4-9-9-4 20-7z"/></svg></span><span class="txt"><span class="t">Adicionar voo</span></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+        <button type="button" class="dash-row" data-dash-action="hotel"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="1"/><line x1="8" y1="7" x2="8" y2="7"/><line x1="12" y1="7" x2="12" y2="7"/><line x1="16" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="8" y2="11"/><line x1="12" y1="11" x2="12" y2="11"/><line x1="16" y1="11" x2="16" y2="11"/><path d="M9 22v-4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4"/></svg></span><span class="txt"><span class="t">Adicionar hotel</span></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+        <button type="button" class="dash-row" data-dash-action="atividade"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span><span class="txt"><span class="t">Adicionar atividade</span></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+        <button type="button" class="dash-row" data-dash-action="gasto"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><span class="txt"><span class="t">Registrar gasto</span></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
     </div>
   </div>
 
@@ -2130,7 +2195,6 @@
 
   function renderAll() {
     titleInput.value = state.tripTitle;
-    subtitleInput.value = state.tripSubtitle;
     document.title = state.tripTitle || 'Meu App de Viagem';
     renderResumo();
     applyHeroImage();
@@ -2724,7 +2788,8 @@
     const el = document.getElementById('print-export');
     const r = state.resumo;
     let html = `<h1>${escapeHtml(state.tripTitle || 'Minha viagem')}</h1>`;
-    if (state.tripSubtitle) html += `<div class="pe-subtitle">${escapeHtml(state.tripSubtitle)}</div>`;
+    const pb = getTripBounds();
+    if (pb) html += `<div class="pe-subtitle">${escapeHtml(fmtVooDateTime(pb.first.origemData, '') + ' – ' + fmtVooDateTime(pb.last.destinoData || pb.last.origemData, ''))}</div>`;
 
     html += '<h2>📍 Visão geral</h2>';
     const resumoRows = [];
@@ -2957,17 +3022,11 @@
 
   // ---------- Título editável ----------
   const titleInput = document.getElementById('trip-title-input');
-  const subtitleInput = document.getElementById('trip-subtitle-input');
   titleInput.value = state.tripTitle;
-  subtitleInput.value = state.tripSubtitle;
   document.title = state.tripTitle;
   titleInput.addEventListener('input', () => {
     state.tripTitle = titleInput.value;
     document.title = titleInput.value || 'Meu App de Viagem';
-    saveState();
-  });
-  subtitleInput.addEventListener('input', () => {
-    state.tripSubtitle = subtitleInput.value;
     saveState();
   });
 
@@ -2976,7 +3035,7 @@
   // precisa ser um nome de lugar legível, não dá pra calcular a partir do
   // código IATA dos voos). O resto (contagem regressiva, duração, ida,
   // volta) é só exibição, calculado a partir dos voos cadastrados — ver
-  // getTripBounds()/renderResumoAutoSummary() logo abaixo.
+  // getTripBounds()/renderDashboard() logo abaixo.
 
   // Destinos: lista de cidades (chips), não um texto único — uma viagem
   // costuma passar por mais de um lugar. A previsão do tempo usa sempre a
@@ -2988,12 +3047,14 @@
     state.resumo.destinosList.push(name);
     saveState();
     renderDestinosChips();
+    renderDashboard();
     scheduleWeatherUpdate();
   }
   function removeDestino(name) {
     state.resumo.destinosList = state.resumo.destinosList.filter(d => d !== name);
     saveState();
     renderDestinosChips();
+    renderDashboard();
     scheduleWeatherUpdate();
   }
   function renderDestinosChips() {
@@ -3031,44 +3092,256 @@
     return { first: sorted[0], last: sorted[sorted.length - 1] };
   }
 
-  function renderResumoAutoSummary() {
-    const el = document.getElementById('resumo-auto-summary');
-    if (!el) return;
-    const bounds = getTripBounds();
-    if (!bounds) {
-      el.innerHTML = '<p class="hint resumo-auto-empty">Cadastre voos na aba Voos para ver aqui, calculados automaticamente: a contagem regressiva no topo da tela, a duração da viagem e as datas de ida e volta.</p>';
-      return;
-    }
-    const { first, last } = bounds;
-    const start = new Date(first.origemData + 'T00:00:00');
-    const endDateStr = last.destinoData || last.origemData;
-    const end = new Date(endDateStr + 'T00:00:00');
-    const diffDays = Math.round((end - start) / 86400000) + 1;
-    const duracaoTxt = diffDays >= 1 ? (diffDays + (diffDays === 1 ? ' dia' : ' dias')) : '';
-
-    const legHtml = (v, label) => `
-      <div class="resumo-auto-leg">
-        <span class="resumo-auto-leg-label">${label}</span>
-        <div class="flight-leg">
-          <div class="pt"><div class="code">${escapeHtml(v.origem) || '—'}</div><div class="time">${escapeHtml(fmtVooDateTime(v.origemData, v.origemHora))}</div></div>
-          <div class="arrow">${ARROW_ICON_SVG}</div>
-          <div class="pt"><div class="code">${escapeHtml(v.destino) || '—'}</div><div class="time">${escapeHtml(fmtVooDateTime(v.destinoData, v.destinoHora))}</div></div>
-        </div>
-      </div>`;
-
-    let html = '<div class="resumo-auto-divider"></div>';
-    if (duracaoTxt) html += `<div class="resumo-auto-stat"><span class="resumo-auto-stat-label">Duração</span><span class="resumo-auto-stat-value">${duracaoTxt}</span></div>`;
-    html += legHtml(first, last === first ? 'Voo' : 'Ida');
-    if (last !== first) html += legHtml(last, 'Volta');
-    el.innerHTML = html;
+  // ---------- Painel da Início ----------
+  // Responde de relance: para onde vou, quando, o que já está organizado e
+  // o que falta. Tudo calculado do que já foi cadastrado nas outras abas —
+  // nada aqui é obrigatório; o que falta preencher vira um convite discreto.
+  function dashIcon(name) {
+    const paths = {
+      "voo": "<line x1=\"22\" y1=\"2\" x2=\"11\" y2=\"13\"/><path d=\"M22 2L15 22l-4-9-9-4 20-7z\"/>",
+      "hotel": "<rect x=\"4\" y=\"2\" width=\"16\" height=\"20\" rx=\"1\"/><line x1=\"8\" y1=\"7\" x2=\"8\" y2=\"7\"/><line x1=\"12\" y1=\"7\" x2=\"12\" y2=\"7\"/><line x1=\"16\" y1=\"7\" x2=\"16\" y2=\"7\"/><line x1=\"8\" y1=\"11\" x2=\"8\" y2=\"11\"/><line x1=\"12\" y1=\"11\" x2=\"12\" y2=\"11\"/><line x1=\"16\" y1=\"11\" x2=\"16\" y2=\"11\"/><path d=\"M9 22v-4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4\"/>",
+      "documentos": "<path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z\"/><polyline points=\"14 2 14 8 20 8\"/><line x1=\"8\" y1=\"13\" x2=\"16\" y2=\"13\"/><line x1=\"8\" y1=\"17\" x2=\"16\" y2=\"17\"/>",
+      "roteiro": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"18\" rx=\"2\"/><line x1=\"16\" y1=\"2\" x2=\"16\" y2=\"6\"/><line x1=\"8\" y1=\"2\" x2=\"8\" y2=\"6\"/><line x1=\"3\" y1=\"10\" x2=\"21\" y2=\"10\"/>",
+      "checklist": "<polyline points=\"9 11 12 14 22 4\"/><path d=\"M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11\"/>",
+      "atividade": "<path d=\"M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z\"/><circle cx=\"12\" cy=\"10\" r=\"3\"/>",
+      "checkout": "<path d=\"M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4\"/><polyline points=\"16 17 21 12 16 7\"/><line x1=\"21\" y1=\"12\" x2=\"9\" y2=\"12\"/>"
+    };
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + paths[name] + '</svg>';
   }
+
+  function fmtDayMonth(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.getDate() + ' ' + ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'][d.getMonth()];
+  }
+
+  function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+
+  function dashDateChip(dateStr) {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    if (dateStr === localDateStr()) return '<span class="dash-chip today">Hoje</span>';
+    if (dateStr === localDateStr(tomorrow)) return '<span class="dash-chip">Amanhã</span>';
+    return '<span class="dash-chip">' + fmtDayMonth(dateStr) + '</span>';
+  }
+
+  // Voos, check-ins/check-outs e atividades que ainda vão acontecer, em
+  // ordem. Sem horário, o compromisso vale o dia todo (some só no dia
+  // seguinte) e vem antes dos que têm horário no mesmo dia.
+  function getUpcomingEvents() {
+    const now = new Date();
+    const today = localDateStr(now);
+    const events = [];
+    const add = (dateStr, timeStr, ev) => {
+      if (!dateStr) return;
+      const when = combineVooDateTime(dateStr, timeStr);
+      if (!when || isNaN(when)) return;
+      if (timeStr ? when > now : dateStr >= today) events.push(Object.assign({ dateStr, when }, ev));
+    };
+    state.voos.forEach(v => add(v.origemData, v.origemHora, {
+      icon: 'voo', tab: 'voos', id: v.id,
+      title: v.destino ? 'Voo para ' + v.destino : (v.codigo || 'Voo'),
+      sub: [v.origemHora, v.origem && v.destino ? v.origem + ' → ' + v.destino : '', v.codigo].filter(Boolean).join(' · ')
+    }));
+    state.hoteis.forEach(h => {
+      const nome = h.nome || 'Hotel';
+      add(h.checkinData, h.checkinHora, { icon: 'hotel', tab: 'hoteis', id: h.id, title: 'Check-in · ' + nome, sub: [h.checkinHora, h.badge].filter(Boolean).join(' · ') });
+      add(h.checkoutData, h.checkoutHora, { icon: 'checkout', tab: 'hoteis', id: h.id, title: 'Check-out · ' + nome, sub: [h.checkoutHora, h.badge].filter(Boolean).join(' · ') });
+    });
+    state.roteiro.forEach(day => (day.atividades || []).forEach(act => {
+      if (!act.titulo && !act.hora) return;
+      add(day.dataISO, act.hora, { icon: 'atividade', tab: 'roteiro', id: act.id, title: act.titulo || 'Atividade', sub: [act.hora, act.local].filter(Boolean).join(' · ') });
+    }));
+    return events.sort((x, y) => x.when - y.when);
+  }
+
+  function renderDashboard() {
+    if (!document.getElementById('dash-grid')) return;
+    const today = localDateStr();
+
+    // Cabeçalho: destinos, período (dos voos) e viajantes.
+    const bounds = getTripBounds();
+    let start = null, end = null;
+    if (bounds) {
+      start = bounds.first.origemData;
+      end = bounds.last.destinoData || bounds.last.origemData;
+      if (end < start) end = start;
+    }
+    const destinos = state.resumo.destinosList;
+    const destinosEl = document.getElementById('dash-destinos');
+    destinosEl.textContent = destinos.length ? destinos.join(' · ') : 'Para onde você vai?';
+    destinosEl.classList.toggle('empty', !destinos.length);
+    document.getElementById('dash-edit-destinos-btn').textContent = destinos.length ? 'Editar destinos' : 'Adicionar destino';
+    const periodo = start ? (start === end ? fmtDayMonth(start) : fmtDayMonth(start) + ' – ' + fmtDayMonth(end)) : 'Datas a definir';
+    document.getElementById('dash-period').textContent = periodo + ' · ' + plural(state.travelers.length, 'viajante', 'viajantes');
+
+    let eyebrow = 'Sua viagem';
+    const daysBox = document.getElementById('dash-days-box');
+    daysBox.hidden = !start;
+    if (start) {
+      const total = Math.round((new Date(end + 'T00:00:00') - new Date(start + 'T00:00:00')) / 86400000) + 1;
+      let num = total, lbl = total === 1 ? 'dia de viagem' : 'dias de viagem';
+      if (today < start) eyebrow = 'Minha próxima viagem';
+      else if (today <= end) {
+        eyebrow = 'Viagem em andamento';
+        num = (Math.round((new Date(today + 'T00:00:00') - new Date(start + 'T00:00:00')) / 86400000) + 1) + '/' + total;
+        lbl = 'dia da viagem';
+      } else eyebrow = 'Viagem concluída';
+      daysBox.innerHTML = `<div class="num">${num}</div><div class="lbl">${lbl}</div>`;
+    }
+    document.getElementById('dash-eyebrow').textContent = eyebrow;
+
+    // Próximos compromissos.
+    const events = getUpcomingEvents().slice(0, 3);
+    const nextEl = document.getElementById('dash-next');
+    if (events.length) {
+      nextEl.innerHTML = events.map(ev => `
+        <button type="button" class="dash-row" data-goto-item="${escapeAttr(ev.tab + '|' + (ev.id || ''))}">
+          <span class="ico">${dashIcon(ev.icon)}</span>
+          <span class="txt"><span class="t">${escapeHtml(ev.title)}</span>${ev.sub ? `<span class="s">${escapeHtml(ev.sub)}</span>` : ''}</span>
+          ${dashDateChip(ev.dateStr)}
+        </button>`).join('');
+    } else {
+      const hasDates = state.voos.some(v => v.origemData) || state.hoteis.some(h => h.checkinData) || state.roteiro.some(d => d.dataISO);
+      nextEl.innerHTML = `<p class="hint dash-empty">${hasDates ? 'Nenhum compromisso pela frente.' : 'Cadastre voos, hotéis ou atividades com data para ver aqui o que vem a seguir.'}</p>`;
+    }
+
+    // Saldo e checklist.
+    const totals = expenseTotalsByCurrency();
+    const spent = totals[state.budgetCurrency] || 0;
+    let saldoTile;
+    if (state.budgetTotal != null) {
+      const remaining = state.budgetTotal - spent;
+      const pct = state.budgetTotal > 0 ? Math.min(100, spent / state.budgetTotal * 100) : 0;
+      saldoTile = `<button type="button" class="dash-tile" data-goto-tab="orcamento">
+        <span class="lbl">Saldo disponível</span>
+        <span class="val ${remaining < 0 ? 'neg' : 'good'}">${fmtMoney(remaining, state.budgetCurrency)}</span>
+        <span class="sub">de ${fmtMoney(state.budgetTotal, state.budgetCurrency)}</span>
+        <span class="dash-bar"><span class="fill${remaining < 0 ? ' neg' : ''}" style="width:${pct}%"></span></span>
+      </button>`;
+    } else if (state.expenses.length) {
+      saldoTile = `<button type="button" class="dash-tile" data-goto-tab="orcamento">
+        <span class="lbl">Gasto até agora</span>
+        <span class="val">${fmtMoney(spent, state.budgetCurrency)}</span>
+        <span class="sub">Defina um orçamento em Configurações</span>
+      </button>`;
+    } else {
+      saldoTile = `<button type="button" class="dash-tile empty" data-goto-tab="config">
+        <span class="lbl">Orçamento</span>
+        <span class="val">—</span>
+        <span class="sub">Toque para definir</span>
+      </button>`;
+    }
+    let done = 0, totalItems = 0;
+    const perTraveler = [];
+    state.travelers.forEach(t => {
+      const items = state.checklists[t] || [];
+      const d = items.filter(i => i.done).length;
+      done += d;
+      totalItems += items.length;
+      if (items.length) perTraveler.push({ t, d, n: items.length });
+    });
+    const checklistTile = totalItems
+      ? `<button type="button" class="dash-tile" data-goto-tab="checklist">
+          <span class="lbl">Checklist</span>
+          <span class="val">${Math.round(done / totalItems * 100)}%</span>
+          <span class="sub">${done} de ${totalItems} concluídos</span>
+          <span class="dash-bar"><span class="fill" style="width:${done / totalItems * 100}%"></span></span>
+          ${perTraveler.length > 1 ? perTraveler.slice(0, 4).map(p => `<span class="dash-trav"><span>${escapeHtml(p.t)}</span><span>${p.d}/${p.n}</span></span>`).join('') : ''}
+        </button>`
+      : `<button type="button" class="dash-tile empty" data-goto-tab="checklist">
+          <span class="lbl">Checklist</span>
+          <span class="val">—</span>
+          <span class="sub">Monte seu checklist</span>
+        </button>`;
+    document.getElementById('dash-tiles').innerHTML = saldoTile + checklistTile;
+
+    // Sua viagem organizada.
+    const nVoos = state.voos.length;
+    const incompletos = state.voos.filter(v => vooMissingFields(v).length).length;
+    const nHoteis = state.hoteis.length;
+    const comVoucher = state.hoteis.filter(h => (state.attachments[h.id] || []).length).length;
+    const nArquivos = Object.keys(state.attachments).filter(k => k.indexOf('doc_') === 0).reduce((sum, k) => sum + (state.attachments[k] || []).length, 0);
+    const nDias = state.roteiro.length;
+    const nAtividades = state.roteiro.reduce((sum, d) => sum + (d.atividades || []).filter(a => a.titulo).length, 0);
+    const gridTile = (tab, icon, label, n, sub) => `
+      <button type="button" class="dash-tile${n ? '' : ' empty'}" data-goto-tab="${tab}">
+        <span class="ico">${dashIcon(icon)}</span>
+        <span class="val">${label}</span>
+        <span class="sub">${sub}</span>
+      </button>`;
+    document.getElementById('dash-grid').innerHTML =
+      gridTile('voos', 'voo', 'Voos', nVoos, nVoos ? plural(nVoos, 'cadastrado', 'cadastrados') + (incompletos ? ' · ' + plural(incompletos, 'incompleto', 'incompletos') : '') : 'Nenhum ainda') +
+      gridTile('hoteis', 'hotel', 'Hotéis', nHoteis, nHoteis ? plural(nHoteis, 'cadastrado', 'cadastrados') + (comVoucher ? ' · ' + comVoucher + ' c/ voucher' : '') : 'Nenhum ainda') +
+      gridTile('documentos', 'documentos', 'Documentos', nArquivos, nArquivos ? plural(nArquivos, 'arquivo', 'arquivos') : 'Nenhum arquivo ainda') +
+      gridTile('roteiro', 'roteiro', 'Roteiro', nDias, nDias ? plural(nDias, 'dia planejado', 'dias planejados') + (nAtividades ? ' · ' + plural(nAtividades, 'atividade', 'atividades') : '') : 'Nenhum dia ainda');
+  }
+
+  // Leva até o card de um item (voo, hotel, atividade) e dá um destaque
+  // rápido nele — o painel abre o resultado, não um cadastro novo.
+  function goToItem(tab, id) {
+    showTab(tab);
+    if (!id) return;
+    const el = document.querySelector('#' + tab + ' [data-item-id="' + CSS.escape(id) + '"]');
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.remove('flash-highlight');
+    void el.offsetWidth;
+    el.classList.add('flash-highlight');
+  }
+
+  document.getElementById('dash-next').addEventListener('click', (e) => {
+    const row = e.target.closest('[data-goto-item]');
+    if (!row) return;
+    const [tab, id] = row.dataset.gotoItem.split('|');
+    goToItem(tab, id);
+  });
+
+  document.getElementById('dash-edit-destinos-btn').addEventListener('click', () => {
+    const editor = document.getElementById('dash-destinos-editor');
+    editor.hidden = !editor.hidden;
+    if (!editor.hidden) newDestinoInput.focus();
+  });
+
+  document.getElementById('dash-actions').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-dash-action]');
+    if (!btn) return;
+    const action = btn.dataset.dashAction;
+    if (action === 'voo') {
+      showTab('voos');
+      document.getElementById('add-voo-btn').click();
+    } else if (action === 'hotel') {
+      document.getElementById('add-hotel-btn').click();
+      const hotel = state.hoteis[state.hoteis.length - 1];
+      goToItem('hoteis', hotel.id);
+      const nome = document.querySelector('#hoteis [data-item-id="' + CSS.escape(hotel.id) + '"] [data-field="nome"]');
+      if (nome) nome.focus({ preventScroll: true });
+    } else if (action === 'atividade') {
+      // Durante a viagem, cai no dia de hoje; fora dela, abre um dia novo
+      // (igual ao "+ Adicionar dia" da aba Roteiro).
+      const today = localDateStr();
+      const act = { id: uid(), hora: '', titulo: '', local: '', reserva: '', descricao: '', distancia: '' };
+      let day = state.roteiro.find(d => d.dataISO === today);
+      if (day) day.atividades.push(act);
+      else state.roteiro.push({ id: uid(), data: '', dataISO: getTripDays().includes(today) ? today : '', tag: '', atividades: [act] });
+      saveState();
+      renderRoteiro();
+      goToItem('roteiro', act.id);
+      const titulo = document.querySelector('#roteiro [data-item-id="' + CSS.escape(act.id) + '"] [data-field="titulo"]');
+      if (titulo) titulo.focus({ preventScroll: true });
+    } else if (action === 'gasto') {
+      showTab('orcamento');
+      const amount = document.getElementById('expense-amount');
+      amount.focus({ preventScroll: true });
+      amount.closest('.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
 
   function renderResumo() {
     renderDestinosChips();
     updateCountdown();
     updateWeatherBadge();
     updateTripAlerts();
-    renderResumoAutoSummary();
+    renderDashboard();
   }
 
   // ---------- Foto de fundo da barra lateral (editável) ----------
@@ -3246,6 +3519,8 @@
     document.getElementById(tab).classList.add('active');
     document.body.classList.toggle('on-home-tab', tab === 'resumo');
     moreSheetOverlay.classList.remove('open');
+    window.scrollTo(0, 0);
+    if (tab === 'resumo') renderDashboard();
     if (tab === 'orcamento' && currentFxRate == null) refreshFxRate();
     if (tab === 'config') renderConfigTripSelect();
   }
@@ -3600,6 +3875,7 @@
     state.voos.forEach((voo, idx) => {
       const card = document.createElement('div');
       card.className = 'card editable-card voo-card';
+      card.dataset.itemId = voo.id;
       const hasData = vooHasAnyData(voo);
       const missing = vooMissingFields(voo);
       const expanded = isVooFieldsExpanded(voo);
@@ -3684,7 +3960,7 @@
           if (inputEl.dataset.field === 'origemData' || inputEl.dataset.field === 'origemHora' || inputEl.dataset.field === 'destinoData' || inputEl.dataset.field === 'destinoHora') {
             renderDailyBudgets();
             renderExpenseDayOptions();
-            renderResumoAutoSummary();
+            renderDashboard();
           }
         });
       });
@@ -3716,7 +3992,7 @@
     });
     updateTripAlerts();
     updateCountdown();
-    renderResumoAutoSummary();
+    renderDashboard();
   }
 
   // ---------- Seletor "Adicionar voo" (escanear / importar .pkpass / manual) ----------
@@ -4056,6 +4332,7 @@
     state.hoteis.forEach((h, idx) => {
       const card = document.createElement('div');
       card.className = 'card editable-card';
+      card.dataset.itemId = h.id;
       card.innerHTML = `
         <div class="top-row">
           <span class="idx-label">Hotel ${idx + 1}</span>
@@ -4292,6 +4569,7 @@
       day.atividades.forEach((act, actIdx) => {
         const actCard = document.createElement('div');
         actCard.className = 'activity-card';
+        actCard.dataset.itemId = act.id;
         actCard.innerHTML = `
           <div class="top-row">
             <span class="act-idx">Atividade ${actIdx + 1}</span>
