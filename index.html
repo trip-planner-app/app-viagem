@@ -1081,21 +1081,6 @@
   /* Orcamento */
   .fx-rate-row { display: flex; align-items: center; gap: 8px; font-size: var(--fs-sm); font-weight: 700; color: var(--accent2); margin: 4px 0 8px; }
   .fx-rate-row button { background: none; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; font-size: var(--fs-base); padding: 2px 8px; line-height: 1.4; }
-  .budget-hero { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; }
-  .budget-hero .left { flex: 1; min-width: 160px; }
-  .budget-hero .right {
-    background: var(--card2);
-    border: 1px solid var(--accent2);
-    border-radius: var(--radius-md);
-    padding: 14px 18px;
-    text-align: right;
-    min-width: 180px;
-  }
-  .budget-hero .right .lbl { font-size: var(--fs-xs); color: var(--muted); text-transform: uppercase; font-weight: 700; }
-  .budget-hero .right .val { font-size: var(--fs-display); font-weight: 800; color: var(--accent2); }
-  .budget-hero .right .val.neg { color: var(--danger); }
-  .budget-hero .left .lbl { font-size: var(--fs-xs); color: var(--muted); text-transform: uppercase; font-weight: 700; }
-  .budget-hero .left .val { font-size: var(--fs-lg); font-weight: 800; color: var(--text); margin: 2px 0; }
   .link-btn { background: none; border: none; padding: 0; color: var(--accent2); font-weight: 700; font-size: var(--fs-xs); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 
   /* ---------------- Configurações ---------------- */
@@ -1167,6 +1152,21 @@
   .more-sheet-item .icon { display: flex; flex: none; color: var(--muted); }
   .more-sheet-item .icon svg { width: 20px; height: 20px; }
   .more-sheet-item.active, .more-sheet-item.active .icon { color: var(--accent); }
+  .budget-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .budget-stat { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: var(--card2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px 4px; min-width: 0; }
+  .budget-stat .lbl { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 700; }
+  .budget-stat .val { font-size: var(--fs-base); font-weight: 800; color: var(--text); line-height: 1.25; overflow-wrap: anywhere; }
+  .budget-stat .val.empty { color: var(--muted); }
+  .budget-stat.main { border-color: var(--accent2); }
+  .budget-stat.main .val { color: var(--accent2); }
+  .budget-stat.main .val.neg { color: var(--danger); }
+  .budget-stat.main.neg { border-color: var(--danger); }
+  .expense-amount-row { display: flex; gap: 8px; align-items: stretch; }
+  .expense-amount-row .expense-amount-input { flex: 1; min-width: 0; font-size: var(--fs-xl); font-weight: 800; text-align: center; }
+  .expense-cur-btn { flex: none; background: var(--card2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0 14px; font-family: inherit; font-size: var(--fs-sm); font-weight: 800; color: var(--accent2); cursor: pointer; }
+  .cat-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+  .cat-chip { background: var(--card2); border: 1px solid var(--border); color: var(--text); border-radius: var(--radius-pill); padding: 6px 12px; font-family: inherit; font-size: var(--fs-sm); font-weight: 600; cursor: pointer; }
+  .cat-chip.active { background: var(--accent2); border-color: var(--accent2); color: #fff; }
   .progress-bar { height: 8px; border-radius: var(--radius-pill); background: var(--card2); overflow: hidden; margin-top: 10px; }
   .progress-bar .fill { height: 100%; background: var(--accent); }
   .expense-item {
@@ -1613,10 +1613,30 @@
 
   <!-- ORCAMENTO -->
   <div class="tab" id="orcamento">
-    <div class="page-title">💰 Orçamento</div>
+    <div class="page-title">Gastos</div>
 
     <div class="card">
-      <h3>🔄 Conversor de moeda <span class="badge">cotação automática</span></h3>
+      <div class="budget-stats">
+        <div class="budget-stat">
+          <span class="lbl">Orçamento</span>
+          <span class="val" id="budget-total-display">—</span>
+        </div>
+        <div class="budget-stat">
+          <span class="lbl">Gasto</span>
+          <span class="val" id="budget-spent">US$ 0,00</span>
+        </div>
+        <div class="budget-stat main">
+          <span class="lbl">Saldo</span>
+          <span class="val" id="budget-remaining">—</span>
+        </div>
+      </div>
+      <div class="progress-bar" id="budget-bar"><div class="fill" id="budget-fill" style="width:0%"></div></div>
+      <div class="hint" id="budget-other-currencies" style="margin-top:8px; display:none;"></div>
+      <button type="button" class="link-btn" id="budget-config-link" data-goto-tab="config" style="margin-top:8px;">Alterar em Configurações</button>
+    </div>
+
+    <div class="card">
+      <h3>🔄 Conversor de moedas <span class="badge">cotação automática</span></h3>
       <div class="field-row">
         <div class="field">
           <label class="field-label">Moeda estrangeira</label>
@@ -1639,21 +1659,36 @@
       </div>
     </div>
 
-    <div class="card">
-      <div class="budget-hero">
-        <div class="left">
-          <div class="lbl">Orçamento total</div>
-          <div class="val" id="budget-total-display">—</div>
-          <button type="button" class="link-btn" data-goto-tab="config">Alterar em Configurações</button>
+    <div class="card" id="expense-card">
+      <h3>🧾 Gastos realizados</h3>
+      <div class="expense-amount-row">
+        <input type="number" id="expense-amount" class="expense-amount-input" step="0.01" inputmode="decimal" placeholder="0,00" aria-label="Valor do gasto">
+        <button type="button" class="expense-cur-btn" id="expense-cur-btn" title="Trocar a moeda deste gasto"></button>
+      </div>
+      <div class="field" id="expense-currency-field" style="display:none; margin-top:10px;">
+        <label class="field-label">Moeda deste gasto</label>
+        <select id="expense-currency"></select>
+      </div>
+      <div class="cat-chips" id="expense-category-chips"></div>
+      <input type="text" id="expense-desc" placeholder="Descrição (opcional) — ex: Ingresso Universal">
+      <div class="field-row" style="margin-top:10px;">
+        <div class="field" id="expense-traveler-field">
+          <label class="field-label">Quem pagou</label>
+          <select id="expense-traveler"></select>
         </div>
-        <div class="right">
-          <div class="lbl">Saldo restante</div>
-          <div class="val" id="budget-remaining">US$ 0,00</div>
+        <div class="field" id="expense-day-field" style="display:none;">
+          <label class="field-label">Dia da viagem</label>
+          <select id="expense-day"></select>
         </div>
       </div>
-      <div class="progress-bar"><div class="fill" id="budget-fill" style="width:0%"></div></div>
-      <div class="hint" style="margin-top:8px;">Gasto total: <span id="budget-spent">US$ 0,00</span></div>
-      <div class="hint" id="budget-other-currencies" style="margin-top:2px; display:none;"></div>
+      <button class="btn primary" id="add-expense-btn" style="width:100%; margin-top:4px;">+ Lançar gasto</button>
+      <div id="expense-list" style="margin-top:16px;"></div>
+      <p class="attach-empty" id="expense-empty" style="display:none;">Nenhum gasto lançado ainda.</p>
+    </div>
+
+    <div class="card" id="expense-breakdown-card" style="display:none;">
+      <h3>📊 Resumo por categoria</h3>
+      <div id="expense-breakdown-body"></div>
     </div>
 
     <div class="card" id="daily-budget-card">
@@ -1668,54 +1703,6 @@
       <div id="daily-budget-list" class="daily-budget-list"></div>
     </div>
 
-    <div class="card">
-      <h3>💵 Lançar gasto</h3>
-      <div class="field">
-        <label class="field-label">Viajante</label>
-        <select id="expense-traveler"></select>
-      </div>
-      <div class="field" id="expense-day-field" style="display:none;">
-        <label class="field-label">Dia da viagem</label>
-        <select id="expense-day"></select>
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label class="field-label">Categoria</label>
-          <select id="expense-category">
-            <option>Compras</option>
-            <option>Alimentação</option>
-            <option>Transporte</option>
-            <option>Lazer</option>
-            <option>Crianças</option>
-            <option>Presentes</option>
-          </select>
-        </div>
-        <div class="field">
-          <label class="field-label" id="expense-amount-label">Valor</label>
-          <input type="number" id="expense-amount" step="0.01" placeholder="0,00">
-        </div>
-      </div>
-      <div class="field" style="max-width:260px;">
-        <label class="field-label">Moeda deste gasto</label>
-        <select id="expense-currency"></select>
-      </div>
-      <div class="field">
-        <label class="field-label">Descrição (opcional)</label>
-        <input type="text" id="expense-desc" placeholder="Ex: Ingresso Universal">
-      </div>
-      <button class="btn primary" id="add-expense-btn">+ Adicionar gasto</button>
-    </div>
-
-    <div class="card" id="expense-breakdown-card" style="display:none;">
-      <h3>📊 Resumo por categoria</h3>
-      <div id="expense-breakdown-body"></div>
-    </div>
-
-    <div class="card">
-      <h3>🧾 Gastos lançados</h3>
-      <div id="expense-list"></div>
-      <p class="attach-empty" id="expense-empty" style="display:none;">Nenhum gasto lançado ainda.</p>
-    </div>
   </div>
 
   <!-- CONFIGURAÇÕES -->
@@ -3054,6 +3041,16 @@
       return (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: code || 'USD' });
     } catch (e) {
       return (code || '') + ' ' + (v || 0).toFixed(2);
+    }
+  }
+
+  // Versão curta para caixas estreitas: sem centavos a partir de mil.
+  function fmtMoneyShort(v, code) {
+    if (Math.abs(v || 0) < 1000) return fmtMoney(v, code);
+    try {
+      return Math.round(v).toLocaleString('pt-BR', { style: 'currency', currency: code || 'USD', maximumFractionDigits: 0, minimumFractionDigits: 0 });
+    } catch (e) {
+      return (code || '') + ' ' + Math.round(v);
     }
   }
 
@@ -5371,7 +5368,9 @@
   const budgetSpentEl = document.getElementById('budget-spent');
   const budgetFillEl = document.getElementById('budget-fill');
   const budgetCurrencySelect = document.getElementById('budget-currency');
-  const expenseAmountLabelEl = document.getElementById('expense-amount-label');
+  const expenseCurBtn = document.getElementById('expense-cur-btn');
+  const expenseCurrencyFieldEl = document.getElementById('expense-currency-field');
+  const expenseCategoryChipsEl = document.getElementById('expense-category-chips');
   const expenseCurrencySelect = document.getElementById('expense-currency');
   const expenseTravelerSelect = document.getElementById('expense-traveler');
   const expenseListEl = document.getElementById('expense-list');
@@ -5402,8 +5401,33 @@
 
   function updateBudgetLabels() {
     budgetTotalLabelEl.textContent = 'Orçamento total (' + state.budgetCurrency + ')';
-    expenseAmountLabelEl.textContent = 'Valor';
+    expenseCurBtn.textContent = expenseCurrencySelect.value + ' ▾';
   }
+
+  // Lançamento rápido: valor + categoria em um toque. A moeda vem de
+  // Configurações; outra moeda só aparece se o usuário tocar no código.
+  const EXPENSE_CATEGORIES = ['Alimentação', 'Transporte', 'Compras', 'Lazer', 'Crianças', 'Presentes', 'Outros'];
+  let expenseCategory = 'Alimentação';
+  function renderExpenseCategoryChips() {
+    expenseCategoryChipsEl.innerHTML = EXPENSE_CATEGORIES.map(c =>
+      `<button type="button" class="cat-chip${c === expenseCategory ? ' active' : ''}" data-cat="${escapeAttr(c)}">${escapeHtml(c)}</button>`).join('');
+  }
+  renderExpenseCategoryChips();
+  expenseCategoryChipsEl.addEventListener('click', (e) => {
+    const chip = e.target.closest('[data-cat]');
+    if (!chip) return;
+    expenseCategory = chip.dataset.cat;
+    renderExpenseCategoryChips();
+  });
+  expenseCurBtn.addEventListener('click', () => {
+    const open = expenseCurrencyFieldEl.style.display === 'none';
+    expenseCurrencyFieldEl.style.display = open ? '' : 'none';
+    if (open) expenseCurrencySelect.focus();
+  });
+  expenseCurrencySelect.addEventListener('change', () => {
+    expenseCurrencyFieldEl.style.display = 'none';
+    updateBudgetLabels();
+  });
   updateBudgetLabels();
 
   if (state.budgetTotal != null) budgetTotalInput.value = state.budgetTotal;
@@ -5419,6 +5443,7 @@
     saveState();
     updateBudgetLabels();
     populateCurrencySelect(expenseCurrencySelect, state.budgetCurrency);
+    updateBudgetLabels();
     renderBudgetSummary();
     renderExpenses();
     renderDailyBudgets();
@@ -5481,6 +5506,9 @@
   fxRefreshBtn.addEventListener('click', refreshFxRate);
 
   function renderExpenseTravelerOptions() {
+    const prev = expenseTravelerSelect.value;
+    // Com um viajante só, não há o que escolher.
+    document.getElementById('expense-traveler-field').style.display = state.travelers.length > 1 ? '' : 'none';
     expenseTravelerSelect.innerHTML = '';
     state.travelers.forEach(name => {
       const opt = document.createElement('option');
@@ -5488,6 +5516,7 @@
       opt.textContent = name;
       expenseTravelerSelect.appendChild(opt);
     });
+    if (state.travelers.includes(prev)) expenseTravelerSelect.value = prev;
   }
 
   // Só existe uma lista de "dias da viagem" pra escolher quando dá pra
@@ -5648,10 +5677,17 @@
     const totals = expenseTotalsByCurrency();
     const spent = totals[state.budgetCurrency] || 0;
     const remaining = total - spent;
-    document.getElementById('budget-total-display').textContent = state.budgetTotal != null ? fmtMoney(total, state.budgetCurrency) : 'Não definido';
-    budgetSpentEl.textContent = fmtMoney(spent, state.budgetCurrency);
-    budgetRemainingEl.textContent = fmtMoney(remaining, state.budgetCurrency);
-    budgetRemainingEl.classList.toggle('neg', remaining < 0);
+    const hasBudget = state.budgetTotal != null;
+    const totalDisplayEl = document.getElementById('budget-total-display');
+    totalDisplayEl.textContent = hasBudget ? fmtMoneyShort(total, state.budgetCurrency) : 'Definir';
+    totalDisplayEl.classList.toggle('empty', !hasBudget);
+    budgetSpentEl.textContent = fmtMoneyShort(spent, state.budgetCurrency);
+    budgetRemainingEl.textContent = hasBudget ? fmtMoneyShort(remaining, state.budgetCurrency) : '—';
+    budgetRemainingEl.classList.toggle('neg', hasBudget && remaining < 0);
+    budgetRemainingEl.classList.toggle('empty', !hasBudget);
+    budgetRemainingEl.closest('.budget-stat').classList.toggle('neg', hasBudget && remaining < 0);
+    document.getElementById('budget-bar').style.display = hasBudget ? '' : 'none';
+    document.getElementById('budget-config-link').textContent = hasBudget ? 'Alterar orçamento e moeda em Configurações' : 'Definir orçamento e moeda em Configurações';
     const pct = total > 0 ? Math.min(100, (spent / total) * 100) : 0;
     budgetFillEl.style.width = pct + '%';
     budgetFillEl.style.background = remaining < 0 ? 'var(--danger)' : 'var(--accent)';
@@ -5719,9 +5755,9 @@
       const item = document.createElement('div');
       item.className = 'expense-item';
       item.innerHTML = `
-        <div>
-          <div><span class="cat-pill">${escapeHtml(exp.category)}</span><strong>${escapeHtml(exp.traveler)}</strong></div>
-          <div class="meta">${escapeHtml(exp.desc || 'Sem descrição')}</div>
+        <div style="min-width:0; flex:1;">
+          <div><span class="cat-pill">${escapeHtml(exp.category)}</span>${exp.desc ? `<strong>${escapeHtml(exp.desc)}</strong>` : ''}</div>
+          <div class="meta">${escapeHtml([exp.tripDate ? fmtDayMonth(exp.tripDate) : '', state.travelers.length > 1 ? exp.traveler : ''].filter(Boolean).join(' · '))}</div>
         </div>
         <div class="amt">${fmtMoney(exp.amount, exp.currency || state.budgetCurrency)}</div>
         <button class="btn danger small" data-action="del-exp" style="margin-left:8px;">✕</button>`;
@@ -5738,11 +5774,11 @@
 
   document.getElementById('add-expense-btn').addEventListener('click', () => {
     const traveler = expenseTravelerSelect.value;
-    const category = document.getElementById('expense-category').value;
+    const category = expenseCategory;
     const amount = parseFloat(document.getElementById('expense-amount').value);
     const currency = expenseCurrencySelect.value;
     const desc = document.getElementById('expense-desc').value.trim();
-    if (!amount || amount <= 0) { alert('Informe um valor válido.'); return; }
+    if (!amount || amount <= 0) { document.getElementById('expense-amount').focus(); return; }
     const tripDate = expenseDayFieldEl.style.display !== 'none' ? expenseDaySelect.value : localDateStr();
     state.expenses.push({ traveler, category, amount, currency, desc, date: new Date().toISOString(), tripDate });
     document.getElementById('expense-amount').value = '';
@@ -5751,6 +5787,7 @@
     renderExpenses();
     renderBudgetSummary();
     renderDailyBudgets();
+    renderDashboard();
   });
 
   renderExpenseTravelerOptions();
