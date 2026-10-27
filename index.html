@@ -837,6 +837,34 @@
   .voo-fields-body { display: none; margin-top: 14px; }
   .voo-fields-body.expanded { display: block; }
 
+  /* Selo de situação no topo do card (voo realizado, hospedagem atual/concluída)
+     e card "apagado" para o que já passou — sem opacidade, pra não perder contraste. */
+  .status-pill { font-size: var(--fs-xs); font-weight: 700; padding: 3px 10px; border-radius: var(--radius-pill); margin-left: 8px; }
+  .status-pill.now { background: var(--accent); color: #fff; }
+  .status-pill.done { background: var(--card2); color: var(--muted); border: 1px solid var(--border); }
+  .card.is-past { background: var(--card2); box-shadow: none; }
+
+  /* Card de hotel: mesmo padrão do card de voo (resumo + edição recolhida). */
+  .hotel-summary { text-align: center; margin-top: 10px; }
+  .hotel-name { font-size: var(--fs-xl); font-weight: 800; color: var(--text); line-height: 1.25; }
+  .hotel-city { display: inline-block; margin-top: 5px; font-size: var(--fs-xs); font-weight: 700; color: var(--accent2); background: var(--chip-bg); padding: 2px 10px; border-radius: var(--radius-pill); }
+  .hotel-dates { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 14px; }
+  .hotel-date { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+  .hotel-date .lbl { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 700; }
+  .hotel-date .val { font-size: var(--fs-md); font-weight: 700; color: var(--text); }
+  .hotel-nights { flex: none; font-size: var(--fs-xs); color: var(--accent2); font-weight: 700; }
+  .hotel-meta { font-size: var(--fs-sm); color: var(--muted); margin-top: 10px; }
+  .hotel-quick { display: flex; justify-content: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .hotel-quick .btn { display: inline-flex; align-items: center; gap: 5px; }
+  .hotel-quick .btn svg { width: 14px; height: 14px; flex: none; }
+  .hotel-done-toggle {
+    display: flex; align-items: center; justify-content: space-between; width: 100%;
+    background: none; border: none; padding: 8px 2px 12px; cursor: pointer;
+    font-family: inherit; font-size: var(--fs-md); font-weight: 800; color: var(--muted);
+  }
+  .hotel-done-toggle svg { width: 16px; height: 16px; transition: transform .15s ease; }
+  .hotel-done-toggle.expanded svg { transform: rotate(180deg); }
+
   /* Buttons / inputs */
   .btn {
     background: var(--card2);
@@ -1170,7 +1198,9 @@
     .landmark-strip { display: none; }
     .sidebar nav { display: none; }
     .bottom-tabbar { display: flex; }
-    main { padding: 20px 14px calc(78px + env(safe-area-inset-bottom)); }
+    /* width:100% — com o body em coluna, o margin:auto encolhia o main até a
+       largura do conteúdo (abas com pouco conteúdo ficavam mais estreitas). */
+    main { width: 100%; padding: 20px 14px calc(78px + env(safe-area-inset-bottom)); }
     /* Fora da Início o topo encolhe pra só a marca — sobra mais tela pro
        conteúdo (foto, contagem e clima ficam no painel da Início). */
     body:not(.on-home-tab) .sidebar-hero { display: none; }
@@ -1457,7 +1487,6 @@
       <div class="page-title">Voos</div>
       <div style="display:flex; gap:8px;">
         <input type="file" id="voo-upload-input" accept="image/*,application/pdf,.pkpass,application/vnd.apple.pkpass" style="display:none;">
-        <button class="btn" id="open-voos-table-btn">Resumo</button>
         <button class="btn primary" id="add-voo-btn">+ Adicionar voo</button>
       </div>
     </div>
@@ -1762,14 +1791,6 @@
     <button class="btn primary" id="roteiro-table-close">✕ Fechar</button>
   </div>
   <div id="roteiro-table-body" class="table-overlay-body"></div>
-</div>
-
-<div id="voos-table-overlay" class="table-overlay">
-  <div class="table-overlay-header">
-    <span>Voos resumidos</span>
-    <button class="btn primary" id="voos-table-close">✕ Fechar</button>
-  </div>
-  <div id="voos-table-body" class="table-overlay-body"></div>
 </div>
 
 <div id="confirm-modal-overlay">
@@ -3279,6 +3300,7 @@
   // Leva até o card de um item (voo, hotel, atividade) e dá um destaque
   // rápido nele — o painel abre o resultado, não um cadastro novo.
   function goToItem(tab, id) {
+    if (tab === 'hoteis' && state.hoteis.some(h => h.id === id && hotelStatus(h) === 'done')) hotelDoneExpanded = true;
     showTab(tab);
     if (!id) return;
     const el = document.querySelector('#' + tab + ' [data-item-id="' + CSS.escape(id) + '"]');
@@ -3521,6 +3543,8 @@
     moreSheetOverlay.classList.remove('open');
     window.scrollTo(0, 0);
     if (tab === 'resumo') renderDashboard();
+    if (tab === 'voos') renderVoos();
+    if (tab === 'hoteis') renderHoteis();
     if (tab === 'orcamento' && currentFxRate == null) refreshFxRate();
     if (tab === 'config') renderConfigTripSelect();
   }
@@ -3768,7 +3792,7 @@
     });
   }
 
-  function renderAttachList(id, container, emptyLabel) {
+  function renderAttachList(id, container, emptyLabel, onChange) {
     const files = state.attachments[id] || [];
     container.innerHTML = '';
     if (files.length === 0) {
@@ -3797,13 +3821,14 @@
         await deleteFileEverywhere(f.fileKey);
         state.attachments[id].splice(idx, 1);
         saveState();
-        renderAttachList(id, container, emptyLabel);
+        renderAttachList(id, container, emptyLabel, onChange);
+        if (onChange) onChange();
       });
       container.appendChild(item);
     });
   }
 
-  function setupAttachZone(id, zoneEl, buttonLabel, emptyLabel) {
+  function setupAttachZone(id, zoneEl, buttonLabel, emptyLabel, onChange) {
     zoneEl.innerHTML = '';
     const btn = document.createElement('button');
     btn.className = 'btn primary';
@@ -3831,14 +3856,15 @@
         }
       }
       saveState();
-      renderAttachList(id, listDiv, emptyLabel);
+      renderAttachList(id, listDiv, emptyLabel, onChange);
       input.value = '';
+      if (onChange) onChange();
     });
 
     zoneEl.appendChild(btn);
     zoneEl.appendChild(input);
     zoneEl.appendChild(listDiv);
-    renderAttachList(id, listDiv, emptyLabel);
+    renderAttachList(id, listDiv, emptyLabel, onChange);
   }
 
   // ---------- Voos (editável, lista dinâmica) ----------
@@ -3870,20 +3896,39 @@
     return vooMissingFields(voo).length > 0;
   }
 
+  // Cards em ordem cronológica de partida (voos sem data vão pro fim, na
+  // ordem em que foram criados) — a numeração "Voo N" segue essa ordem.
+  function vooDepartureKey(voo) {
+    return voo.origemData ? voo.origemData + 'T' + (voo.origemHora || '00:00') : '9999';
+  }
+
+  // Acesso rápido ao cartão de embarque no resumo do card; a lista completa
+  // de anexos fica dentro de "Editar dados do voo".
+  function vooQuickHtml(voo) {
+    return (state.attachments[voo.id] || []).length
+      ? `<button type="button" class="btn small" data-action="open-boarding-pass">${dashIcon('documentos')}Cartão de embarque</button>`
+      : '<button type="button" class="btn small" data-action="attach-boarding-pass">+ Anexar cartão de embarque</button>';
+  }
+
   function renderVoos() {
     voosListEl.innerHTML = '';
-    state.voos.forEach((voo, idx) => {
+    const now = new Date();
+    const ordered = state.voos.slice().sort((a, b) => vooDepartureKey(a).localeCompare(vooDepartureKey(b)));
+    ordered.forEach((voo, idx) => {
       const card = document.createElement('div');
-      card.className = 'card editable-card voo-card';
+      const departure = combineVooDateTime(voo.origemData, voo.origemHora);
+      const isPast = !!departure && departure < now;
+      card.className = 'card editable-card voo-card' + (isPast ? ' is-past' : '');
       card.dataset.itemId = voo.id;
       const hasData = vooHasAnyData(voo);
       const missing = vooMissingFields(voo);
       const expanded = isVooFieldsExpanded(voo);
-      const trechoLabel = (voo.trecho && voo.trecho !== 'Trecho ' + (idx + 1)) ? `<span class="voo-trecho-label">${escapeHtml(voo.trecho)}</span>` : '';
+      // "Trecho N" é só o nome automático dado na criação — não repete o badge.
+      const trechoLabel = (voo.trecho && !/^Trecho \d+$/.test(voo.trecho)) ? `<span class="voo-trecho-label">${escapeHtml(voo.trecho)}</span>` : '';
 
       card.innerHTML = `
         <div class="top-row">
-          <span class="voo-badge">Voo ${idx + 1}</span>${trechoLabel}
+          <span class="voo-badge">Voo ${idx + 1}</span>${trechoLabel}${isPast ? '<span class="status-pill done">Realizado</span>' : ''}
           <button class="btn danger small" data-action="del-voo" style="margin-left:auto;">Remover</button>
         </div>
         ${hasData ? `
@@ -3897,6 +3942,7 @@
           ${voo.meta ? `<div class="voo-summary-meta">${escapeHtml(voo.meta)}</div>` : ''}
           ${missing.length ? `<div class="voo-summary-warning">${VOO_WARNING_ICON} Falta preencher: ${escapeHtml(missing.join(', '))}</div>` : ''}
         </div>` : `<p class="hint voo-summary-empty-hint">Preencha os campos abaixo ou anexe/importe o cartão de embarque.</p>`}
+        <div class="hotel-quick voo-quick">${vooQuickHtml(voo)}</div>
         <div class="voo-fields-toggle" data-action="toggle-fields">
           <span class="voo-fields-toggle-label">${expanded ? 'Recolher' : 'Editar dados do voo'}</span>
           <svg class="voo-fields-chevron${expanded ? ' expanded' : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -3949,8 +3995,8 @@
             <label class="field-label">Observações (companhia, tipo de conexão etc.)</label>
             <input type="text" data-field="meta" value="${escapeAttr(voo.meta)}" placeholder="Ex: American Airlines · overnight">
           </div>
+          <div class="attach-zone"></div>
         </div>
-        <div class="attach-zone"></div>
       `;
       card.querySelectorAll('[data-field]').forEach(inputEl => {
         inputEl.addEventListener('input', () => {
@@ -3980,14 +4026,26 @@
           for (const a of atts) { await deleteFileEverywhere(a.fileKey); }
           delete state.attachments[voo.id];
           vooExpandOverride.delete(voo.id);
-          state.voos.splice(idx, 1);
+          state.voos.splice(state.voos.indexOf(voo), 1);
           saveState();
           renderVoos();
           renderDailyBudgets();
           renderExpenseDayOptions();
         }
       });
-      setupAttachZone(voo.id, card.querySelector('.attach-zone'), '+ Anexar cartão de embarque', 'Nenhum cartão de embarque anexado ainda.');
+      card.querySelector('.voo-quick').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        if (btn.dataset.action === 'open-boarding-pass') {
+          const f = (state.attachments[voo.id] || [])[0];
+          if (f) openPdfModal(f, f.name);
+        } else if (btn.dataset.action === 'attach-boarding-pass') {
+          card.querySelector('.attach-zone input[type=file]').click();
+        }
+      });
+      setupAttachZone(voo.id, card.querySelector('.attach-zone'), '+ Anexar cartão de embarque', 'Nenhum cartão de embarque anexado ainda.', () => {
+        card.querySelector('.voo-quick').innerHTML = vooQuickHtml(voo);
+      });
       voosListEl.appendChild(card);
     });
     updateTripAlerts();
@@ -4327,21 +4385,66 @@
     return `<p class="hint legacy-date-hint">Anotado antes: "${escapeHtml(legacyText)}"</p>`;
   }
 
-  function renderHoteis() {
-    hoteisListEl.innerHTML = '';
-    state.hoteis.forEach((h, idx) => {
-      const card = document.createElement('div');
-      card.className = 'card editable-card';
-      card.dataset.itemId = h.id;
-      card.innerHTML = `
-        <div class="top-row">
-          <span class="idx-label">Hotel ${idx + 1}</span>
-          <button class="btn danger small" data-action="del-hotel">Remover</button>
+  // 'now' = hospedado hoje; 'done' = check-out já passou.
+  function hotelStatus(h) {
+    const today = localDateStr();
+    if (h.checkoutData && h.checkoutData < today) return 'done';
+    if (h.checkinData && h.checkinData <= today && (!h.checkoutData || today <= h.checkoutData)) return 'now';
+    return '';
+  }
+
+  function hotelSummaryHtml(h) {
+    if (!h.nome && !h.checkinData && !h.checkoutData && !h.endereco) {
+      return '<p class="hint voo-summary-empty-hint">Preencha os dados abaixo e anexe o voucher da reserva.</p>';
+    }
+    const nights = hotelNights(h);
+    const dateCol = (label, d, t) => `<div class="hotel-date"><span class="lbl">${label}</span><span class="val">${d ? fmtDayMonth(d) + (t ? ' · ' + t : '') : '—'}</span></div>`;
+    const hasVoucher = (state.attachments[h.id] || []).length > 0;
+    return `
+      <div class="hotel-summary">
+        <div class="hotel-name">${escapeHtml(h.nome || 'Hotel sem nome')}</div>
+        ${h.badge ? `<div class="hotel-city">${escapeHtml(h.badge)}</div>` : ''}
+        <div class="hotel-dates">
+          ${dateCol('Check-in', h.checkinData, h.checkinHora)}
+          <div class="hotel-nights">${nights != null ? plural(nights, 'diária', 'diárias') : ''}</div>
+          ${dateCol('Check-out', h.checkoutData, h.checkoutHora)}
         </div>
+        ${h.cancelamento ? `<div class="hotel-meta">Cancelamento grátis até ${escapeHtml(h.cancelamento)}</div>` : ''}
+        <div class="hotel-quick">
+          ${h.endereco ? `<button type="button" class="btn small" data-action="open-maps">${dashIcon('atividade')}Mapa</button>` : ''}
+          ${hasVoucher
+            ? `<button type="button" class="btn small" data-action="open-voucher">${dashIcon('documentos')}Voucher</button>`
+            : '<button type="button" class="btn small" data-action="attach-voucher">+ Anexar voucher</button>'}
+        </div>
+      </div>`;
+  }
+
+  // Estado de UI (não sincroniza): quais cards o usuário abriu/fechou e se a
+  // seção de hospedagens concluídas está aberta.
+  const hotelExpandOverride = new Map();
+  let hotelDoneExpanded = false;
+
+  function buildHotelCard(h, number) {
+    const status = hotelStatus(h);
+    const expanded = hotelExpandOverride.has(h.id) ? hotelExpandOverride.get(h.id) : (!h.nome && !h.checkinData);
+    const card = document.createElement('div');
+    card.className = 'card editable-card' + (status === 'done' ? ' is-past' : '');
+    card.dataset.itemId = h.id;
+    card.innerHTML = `
+      <div class="top-row">
+        <span class="voo-badge">Hotel ${number}</span>${status === 'now' ? '<span class="status-pill now">Hospedado agora</span>' : status === 'done' ? '<span class="status-pill done">Concluída</span>' : ''}
+        <button class="btn danger small" data-action="del-hotel" style="margin-left:auto;">Remover</button>
+      </div>
+      <div class="hotel-summary-wrap">${hotelSummaryHtml(h)}</div>
+      <div class="voo-fields-toggle" data-action="toggle-fields">
+        <span class="voo-fields-toggle-label">${expanded ? 'Recolher' : 'Editar dados do hotel'}</span>
+        <svg class="voo-fields-chevron${expanded ? ' expanded' : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="voo-fields-body${expanded ? ' expanded' : ''}">
         <div class="field-row">
           <div class="field">
             <label class="field-label">Nome do hotel</label>
-            <input type="text" data-field="nome" value="${escapeAttr(h.nome)}" placeholder="Ex: 🏨 Nome do Hotel">
+            <input type="text" data-field="nome" value="${escapeAttr(h.nome)}" placeholder="Ex: Ramada Kissimmee">
           </div>
           <div class="field">
             <label class="field-label">Selo / cidade</label>
@@ -4382,49 +4485,81 @@
         </div>
         <div class="field">
           <label class="field-label">Endereço ou link do Maps</label>
-          <div class="field-row" style="align-items:center;">
-            <input type="text" data-field="endereco" value="${escapeAttr(h.endereco)}" placeholder="Cole o link do Maps ou digite o endereço" style="flex:1;">
-            <button type="button" class="btn small" data-action="open-maps" style="flex:none;">📍 Maps</button>
-          </div>
+          <input type="text" data-field="endereco" value="${escapeAttr(h.endereco)}" placeholder="Cole o link do Maps ou digite o endereço">
         </div>
         <div class="field">
           <label class="field-label">Observações (PIN, quarto, política extra...)</label>
           <textarea data-field="observacoes" placeholder="Ex: PIN da porta, quarto standard, shuttle grátis...">${escapeHtml(h.observacoes)}</textarea>
         </div>
         <div class="attach-zone"></div>
-      `;
-      card.querySelectorAll('[data-field]').forEach(inputEl => {
-        inputEl.addEventListener('input', () => {
-          if (inputEl.readOnly) return;
-          h[inputEl.dataset.field] = inputEl.value;
-          if (inputEl.dataset.field === 'checkinData' || inputEl.dataset.field === 'checkoutData') {
-            const nights = hotelNights(h);
-            const diariasEl = card.querySelector('[data-field="diarias"]');
-            if (nights != null) h.diarias = String(nights);
-            diariasEl.value = h.diarias || '';
-            diariasEl.readOnly = nights != null;
-          }
-          saveState();
-        });
+      </div>
+    `;
+    const refreshSummary = () => { card.querySelector('.hotel-summary-wrap').innerHTML = hotelSummaryHtml(h); };
+    card.querySelectorAll('[data-field]').forEach(inputEl => {
+      inputEl.addEventListener('input', () => {
+        if (inputEl.readOnly) return;
+        h[inputEl.dataset.field] = inputEl.value;
+        if (inputEl.dataset.field === 'checkinData' || inputEl.dataset.field === 'checkoutData') {
+          const nights = hotelNights(h);
+          const diariasEl = card.querySelector('[data-field="diarias"]');
+          if (nights != null) h.diarias = String(nights);
+          diariasEl.value = h.diarias || '';
+          diariasEl.readOnly = nights != null;
+        }
+        refreshSummary();
+        saveState();
       });
-      card.querySelector('[data-action="del-hotel"]').addEventListener('click', async () => {
+    });
+    card.addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      const action = btn.dataset.action;
+      if (action === 'toggle-fields') {
+        const newExpanded = !card.querySelector('.voo-fields-body').classList.contains('expanded');
+        hotelExpandOverride.set(h.id, newExpanded);
+        card.querySelector('.voo-fields-body').classList.toggle('expanded', newExpanded);
+        card.querySelector('.voo-fields-chevron').classList.toggle('expanded', newExpanded);
+        card.querySelector('.voo-fields-toggle-label').textContent = newExpanded ? 'Recolher' : 'Editar dados do hotel';
+      } else if (action === 'open-maps') {
+        const addr = (h.endereco || '').trim();
+        if (addr) window.open(/^https?:\/\//i.test(addr) ? addr : 'https://maps.apple.com/?q=' + encodeURIComponent(addr), '_blank');
+      } else if (action === 'open-voucher') {
+        const f = (state.attachments[h.id] || [])[0];
+        if (f) openPdfModal(f, f.name);
+      } else if (action === 'attach-voucher') {
+        card.querySelector('.attach-zone input[type=file]').click();
+      } else if (action === 'del-hotel') {
         if (await customConfirm('Remover este hotel?')) {
           const atts = state.attachments[h.id] || [];
           for (const a of atts) { await deleteFileEverywhere(a.fileKey); }
           delete state.attachments[h.id];
-          state.hoteis.splice(idx, 1);
+          hotelExpandOverride.delete(h.id);
+          state.hoteis.splice(state.hoteis.indexOf(h), 1);
           saveState();
           renderHoteis();
         }
-      });
-      card.querySelector('[data-action="open-maps"]').addEventListener('click', () => {
-        const addr = card.querySelector('[data-field="endereco"]').value.trim();
-        if (!addr) { alert('Preencha o endereço ou cole o link do Maps primeiro.'); return; }
-        window.open(/^https?:\/\//i.test(addr) ? addr : 'https://maps.apple.com/?q=' + encodeURIComponent(addr), '_blank');
-      });
-      setupAttachZone(h.id, card.querySelector('.attach-zone'), '+ Anexar reserva', 'Nenhuma reserva anexada ainda.');
-      hoteisListEl.appendChild(card);
+      }
     });
+    setupAttachZone(h.id, card.querySelector('.attach-zone'), '+ Anexar voucher', 'Nenhum voucher anexado ainda.', refreshSummary);
+    return card;
+  }
+
+  // Ordem cronológica de check-in (sem data vai pro fim). Hospedagens já
+  // encerradas descem pra uma seção própria, recolhida por padrão.
+  function renderHoteis() {
+    hoteisListEl.innerHTML = '';
+    const ordered = state.hoteis.slice().sort((a, b) => (a.checkinData || '9999').localeCompare(b.checkinData || '9999'));
+    const active = ordered.filter(h => hotelStatus(h) !== 'done');
+    const done = ordered.filter(h => hotelStatus(h) === 'done');
+    active.forEach((h, i) => hoteisListEl.appendChild(buildHotelCard(h, i + 1)));
+    if (!done.length) return;
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'hotel-done-toggle' + (hotelDoneExpanded ? ' expanded' : '');
+    toggle.innerHTML = `<span>Hospedagens concluídas (${done.length})</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+    toggle.addEventListener('click', () => { hotelDoneExpanded = !hotelDoneExpanded; renderHoteis(); });
+    hoteisListEl.appendChild(toggle);
+    if (hotelDoneExpanded) done.forEach((h, i) => hoteisListEl.appendChild(buildHotelCard(h, active.length + i + 1)));
   }
   document.getElementById('add-hotel-btn').addEventListener('click', () => {
     state.hoteis.push({ id: 'hotel_' + uid(), nome: '', badge: '', checkin: '', checkout: '', checkinData: '', checkinHora: '', checkoutData: '', checkoutHora: '', diarias: '', endereco: '', cancelamento: '', observacoes: '', extrasMovidos: true });
@@ -4723,50 +4858,6 @@
   });
   document.getElementById('roteiro-table-close').addEventListener('click', () => {
     roteiroTableOverlay.classList.remove('open');
-  });
-
-  // ---------- Tabela resumo dos voos (modal) ----------
-  const voosTableOverlay = document.getElementById('voos-table-overlay');
-  const voosTableBody = document.getElementById('voos-table-body');
-
-  function buildVoosTable() {
-    if (state.voos.length === 0) {
-      voosTableBody.innerHTML = '<p style="font-family:sans-serif;">Nenhum voo cadastrado ainda.</p>';
-      return;
-    }
-    let rows = '';
-    state.voos.forEach((voo, idx) => {
-      rows += `<tr>
-        <td><strong>${idx + 1}</strong></td>
-        <td>${escapeHtml(voo.trecho)}</td>
-        <td>${escapeHtml(voo.codigo)}</td>
-        <td><strong>${escapeHtml(voo.origem)}</strong><br>${escapeHtml(fmtVooDateTime(voo.origemData, voo.origemHora))}</td>
-        <td><strong>${escapeHtml(voo.destino)}</strong><br>${escapeHtml(fmtVooDateTime(voo.destinoData, voo.destinoHora))}</td>
-        <td>${escapeHtml(voo.meta)}</td>
-      </tr>`;
-    });
-    voosTableBody.innerHTML = `
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Trecho</th>
-            <th>Voo</th>
-            <th>Origem</th>
-            <th>Destino</th>
-            <th>Observações</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>`;
-  }
-
-  document.getElementById('open-voos-table-btn').addEventListener('click', () => {
-    buildVoosTable();
-    voosTableOverlay.classList.add('open');
-  });
-  document.getElementById('voos-table-close').addEventListener('click', () => {
-    voosTableOverlay.classList.remove('open');
   });
 
   // ---------- Checklist (por viajante, editável) ----------
