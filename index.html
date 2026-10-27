@@ -895,6 +895,7 @@
     min-width: 0;
     box-sizing: border-box;
     font-family: inherit;
+    line-height: 1.2;
     text-align: center;
   }
   /* Safari/iOS: o controle nativo de date/time ignora width em % e o ícone
@@ -905,7 +906,13 @@
     -webkit-appearance: none;
     appearance: none;
     -webkit-min-logical-width: 0%;
+    /* Altura fixa = a de um input de texto (1 linha + padding + borda):
+       no iOS o campo vazio não tem texto dentro e encolhe; no Chrome o
+       ícone do relógio/calendário estica. Assim todos ficam iguais. */
+    height: calc(1.2em + 18px);
   }
+  input[type=date]::-webkit-date-and-time-value,
+  input[type=time]::-webkit-date-and-time-value { text-align: center; min-height: 1.2em; }
   textarea { resize: vertical; min-height: 44px; text-align: center; }
   label.field-label { font-size: var(--fs-xs); color: var(--muted); display: block; margin-bottom: 3px; font-weight: 600; }
   .field { margin-bottom: 10px; }
@@ -1980,6 +1987,20 @@
         h.checkoutHora = co.hora;
       }
     });
+    // Confirmação, PIN, telefone e valor saíram do formulário do hotel (ficam
+    // no voucher anexado). O que já estava preenchido vai uma única vez para
+    // as Observações, pra não sumir da tela.
+    s.hoteis.forEach(h => {
+      if (h.extrasMovidos) return;
+      const extras = [
+        h.confirmacao && 'Confirmação: ' + h.confirmacao,
+        h.pin && 'PIN: ' + h.pin,
+        h.telefone && 'Telefone: ' + h.telefone,
+        h.valor && 'Valor: ' + h.valor
+      ].filter(Boolean).join(' · ');
+      if (extras) h.observacoes = (h.observacoes ? h.observacoes + '\n' : '') + extras;
+      h.extrasMovidos = true;
+    });
     s.roteiro.forEach(day => {
       if (day.dataISO === undefined) day.dataISO = migrateDate(day.data).data;
       day.atividades = Array.isArray(day.atividades) ? day.atividades : [];
@@ -2691,7 +2712,7 @@
             (h.checkoutData || h.checkout) && 'Check-out: ' + (h.checkoutData ? fmtVooDateTime(h.checkoutData, h.checkoutHora) : h.checkout)
           ].filter(Boolean).map(escapeHtml).join(' · ')}</div>
           ${h.endereco ? `<div class="pe-meta">${escapeHtml(h.endereco)}</div>` : ''}
-          ${h.confirmacao ? `<div class="pe-meta">Confirmação: ${escapeHtml(h.confirmacao)}</div>` : ''}
+          ${h.observacoes ? `<div class="pe-meta">${escapeHtml(h.observacoes)}</div>` : ''}
         </div>`).join('')
       : '<div class="pe-empty">Nenhum hotel cadastrado.</div>';
     if (state.hotelNotasGerais) html += `<div class="pe-item"><span class="pe-title">Notas gerais:</span> ${escapeHtml(state.hotelNotasGerais)}</div>`;
@@ -3993,38 +4014,20 @@
             <input type="text" data-field="diarias" value="${escapeAttr(hotelNights(h) != null ? String(hotelNights(h)) : h.diarias)}" placeholder="Ex: 3"${hotelNights(h) != null ? ' readonly title="Calculado pelas datas de check-in e check-out"' : ''}>
           </div>
           <div class="field">
-            <label class="field-label">Confirmação</label>
-            <input type="text" data-field="confirmacao" value="${escapeAttr(h.confirmacao)}" placeholder="Nº da reserva">
-          </div>
-          <div class="field">
-            <label class="field-label">PIN</label>
-            <input type="text" data-field="pin" value="${escapeAttr(h.pin)}" placeholder="Ex: 9331">
+            <label class="field-label">Cancelamento grátis até</label>
+            <input type="text" data-field="cancelamento" value="${escapeAttr(h.cancelamento)}" placeholder="Ex: 19 nov, 18h">
           </div>
         </div>
         <div class="field">
-          <label class="field-label">Endereço</label>
+          <label class="field-label">Endereço ou link do Maps</label>
           <div class="field-row" style="align-items:center;">
-            <input type="text" data-field="endereco" value="${escapeAttr(h.endereco)}" placeholder="Endereço completo" style="flex:1;">
+            <input type="text" data-field="endereco" value="${escapeAttr(h.endereco)}" placeholder="Cole o link do Maps ou digite o endereço" style="flex:1;">
             <button type="button" class="btn small" data-action="open-maps" style="flex:none;">📍 Maps</button>
           </div>
         </div>
-        <div class="field-row">
-          <div class="field">
-            <label class="field-label">Telefone</label>
-            <input type="text" data-field="telefone" value="${escapeAttr(h.telefone)}" placeholder="+1 ...">
-          </div>
-          <div class="field">
-            <label class="field-label">Valor</label>
-            <input type="text" data-field="valor" value="${escapeAttr(h.valor)}" placeholder="Ex: R$ 1.700">
-          </div>
-        </div>
         <div class="field">
-          <label class="field-label">Cancelamento grátis até</label>
-          <input type="text" data-field="cancelamento" value="${escapeAttr(h.cancelamento)}" placeholder="Ex: 19 nov, 18h">
-        </div>
-        <div class="field">
-          <label class="field-label">Observações (quarto, bônus, política extra...)</label>
-          <textarea data-field="observacoes" placeholder="Ex: quarto standard, shuttle grátis...">${escapeHtml(h.observacoes)}</textarea>
+          <label class="field-label">Observações (PIN, quarto, política extra...)</label>
+          <textarea data-field="observacoes" placeholder="Ex: PIN da porta, quarto standard, shuttle grátis...">${escapeHtml(h.observacoes)}</textarea>
         </div>
         <div class="attach-zone"></div>
       `;
@@ -4054,15 +4057,15 @@
       });
       card.querySelector('[data-action="open-maps"]').addEventListener('click', () => {
         const addr = card.querySelector('[data-field="endereco"]').value.trim();
-        if (!addr) { alert('Preencha o endereço primeiro.'); return; }
-        window.open('https://maps.apple.com/?q=' + encodeURIComponent(addr), '_blank');
+        if (!addr) { alert('Preencha o endereço ou cole o link do Maps primeiro.'); return; }
+        window.open(/^https?:\/\//i.test(addr) ? addr : 'https://maps.apple.com/?q=' + encodeURIComponent(addr), '_blank');
       });
       setupAttachZone(h.id, card.querySelector('.attach-zone'), '+ Anexar reserva', 'Nenhuma reserva anexada ainda.');
       hoteisListEl.appendChild(card);
     });
   }
   document.getElementById('add-hotel-btn').addEventListener('click', () => {
-    state.hoteis.push({ id: 'hotel_' + uid(), nome: '', badge: '', checkin: '', checkout: '', checkinData: '', checkinHora: '', checkoutData: '', checkoutHora: '', diarias: '', confirmacao: '', pin: '', endereco: '', telefone: '', valor: '', cancelamento: '', observacoes: '' });
+    state.hoteis.push({ id: 'hotel_' + uid(), nome: '', badge: '', checkin: '', checkout: '', checkinData: '', checkinHora: '', checkoutData: '', checkoutHora: '', diarias: '', endereco: '', cancelamento: '', observacoes: '', extrasMovidos: true });
     saveState();
     renderHoteis();
   });
@@ -4210,7 +4213,7 @@
             <button class="btn danger small" data-action="del-act">Remover</button>
           </div>
           <div class="field-row">
-            <div class="field" style="flex:0 0 110px;">
+            <div class="field">
               <label class="field-label">Horário</label>
               <input type="time" data-field="hora" value="${escapeAttr(act.hora)}">
             </div>
