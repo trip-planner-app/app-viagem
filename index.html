@@ -1615,7 +1615,7 @@
           <select id="budget-currency"></select>
         </div>
         <div class="field">
-          <label class="field-label" id="budget-total-label">Valor total disponível para a viagem</label>
+          <label class="field-label" id="budget-total-label">Orçamento total</label>
           <input type="number" id="budget-total" placeholder="Ex: 3000" step="0.01">
         </div>
       </div>
@@ -4639,7 +4639,7 @@
   populateCurrencySelect(expenseCurrencySelect, state.budgetCurrency);
 
   function updateBudgetLabels() {
-    budgetTotalLabelEl.textContent = 'Valor total disponível para a viagem (' + state.budgetCurrency + ')';
+    budgetTotalLabelEl.textContent = 'Orçamento total (' + state.budgetCurrency + ')';
     expenseAmountLabelEl.textContent = 'Valor';
   }
   updateBudgetLabels();
