@@ -253,54 +253,6 @@
     border-color: var(--accent);
     font-weight: 700;
   }
-  .sidebar-footer {
-    font-size: var(--fs-2xs);
-    color: #7c86a5;
-    text-align: center;
-    margin-top: 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .trip-code-box {
-    background: rgba(10,16,32,.55);
-    border: 1px solid rgba(255,255,255,.14);
-    border-radius: var(--radius-md);
-    padding: 12px;
-    text-align: left;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,.2);
-    transition: background .15s, border-color .15s;
-  }
-  .trip-code-box:hover { background: rgba(10,16,32,.7); border-color: rgba(255,255,255,.24); }
-  .sidebar-new-trip-btn {
-    display: block;
-    width: 100%;
-    background: rgba(10,16,32,.55);
-    border: 1px solid rgba(255,122,61,.4);
-    border-radius: var(--radius-md);
-    padding: 10px 12px;
-    text-align: left;
-    font-size: var(--fs-sm);
-    font-weight: 700;
-    color: #f2f4fb;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,.2);
-    transition: background .15s, border-color .15s;
-  }
-  .sidebar-new-trip-btn .plus-icon { color: var(--accent); margin-right: 2px; }
-  .sidebar-new-trip-btn:hover { background: rgba(10,16,32,.7); border-color: rgba(255,122,61,.6); }
-  .trip-code-label {
-    font-size: var(--fs-2xs);
-    text-transform: uppercase;
-    letter-spacing: .04em;
-    color: #f2f4fb;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-  }
-  .trip-code-label .trip-code-icon { color: var(--accent2); }
   .trip-code-icon { width: 13px; height: 13px; flex: none; }
   .trip-code-value {
     font-family: monospace;
@@ -720,7 +672,7 @@
   }
   .main-account-panel {
     display: none;
-    margin-top: 30px;
+    margin-top: 16px;
     padding: 14px 16px;
     background: var(--card2);
     border: 1px solid var(--border);
@@ -878,7 +830,8 @@
   .trip-footer-actions button:active,
   .traveler-chip:active,
   .hero-photo-btn:active,
-  .sidebar-new-trip-btn:active,
+  .settings-row:active,
+  .more-sheet-item:active,
   .account-modal-close-x:active {
     transform: scale(0.96);
     opacity: .85;
@@ -1013,6 +966,79 @@
   .budget-hero .right .lbl { font-size: var(--fs-xs); color: var(--muted); text-transform: uppercase; font-weight: 700; }
   .budget-hero .right .val { font-size: var(--fs-display); font-weight: 800; color: var(--accent2); }
   .budget-hero .right .val.neg { color: var(--danger); }
+  .budget-hero .left .lbl { font-size: var(--fs-xs); color: var(--muted); text-transform: uppercase; font-weight: 700; }
+  .budget-hero .left .val { font-size: var(--fs-lg); font-weight: 800; color: var(--text); margin: 2px 0; }
+  .link-btn { background: none; border: none; padding: 0; color: var(--accent2); font-weight: 700; font-size: var(--fs-xs); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+
+  /* ---------------- Configurações ---------------- */
+  .settings-list { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+  .settings-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    color: var(--text);
+    font-size: var(--fs-base);
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .settings-row .settings-row-icon { width: 18px; height: 18px; flex: none; color: var(--accent2); }
+  .settings-row .settings-row-icon.primary { color: var(--accent); }
+  .settings-row .settings-row-chevron { width: 16px; height: 16px; flex: none; margin-left: auto; color: var(--muted); }
+
+  /* ---------------- Menu "Mais" (folha que sobe da barra de abas) ---------------- */
+  #more-sheet-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    /* Abaixo da barra de abas (900), que continua visível e clicável — tocar
+       de novo em "Mais" fecha a folha. */
+    z-index: 890;
+    background: rgba(10,16,32,.45);
+  }
+  #more-sheet-overlay.open { display: block; }
+  #more-sheet {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    background: var(--card);
+    border-radius: 18px 18px 0 0;
+    padding: 10px 14px calc(78px + env(safe-area-inset-bottom));
+    box-shadow: 0 -6px 24px rgba(0,0,0,.18);
+  }
+  #more-sheet::before {
+    content: '';
+    display: block;
+    width: 36px; height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    margin: 0 auto 10px;
+  }
+  .more-sheet-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    padding: 14px 6px;
+    color: var(--text);
+    font-size: var(--fs-md);
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .more-sheet-item:last-child { border-bottom: none; }
+  .more-sheet-item .icon { display: flex; flex: none; color: var(--muted); }
+  .more-sheet-item .icon svg { width: 20px; height: 20px; }
+  .more-sheet-item.active, .more-sheet-item.active .icon { color: var(--accent); }
   .progress-bar { height: 8px; border-radius: var(--radius-pill); background: var(--card2); overflow: hidden; margin-top: 10px; }
   .progress-bar .fill { height: 100%; background: var(--accent); }
   .expense-item {
@@ -1111,10 +1137,6 @@
     .sidebar nav { display: none; }
     .bottom-tabbar { display: flex; }
     main { padding: 20px 14px calc(78px + env(safe-area-inset-bottom)); }
-    /* "Iniciar nova viagem" e "Compartilhar e gerenciar viagem" só fazem sentido
-       na tela inicial — nas outras abas, no celular, só ocupariam espaço no topo. */
-    .sidebar-footer { display: none; }
-    body.on-home-tab .sidebar-footer { display: flex; }
   }
 
   /* Visualizador de PDF embutido (evita depender de abas/pop-ups) */
@@ -1324,24 +1346,26 @@
     <button data-tab="roteiro"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>Roteiro</button>
     <button data-tab="checklist"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>Checklist</button>
     <button data-tab="orcamento"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>Orçamento</button>
+    <button data-tab="config"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>Configurações</button>
   </nav>
-  <div class="sidebar-footer">
-    <button type="button" class="sidebar-new-trip-btn" id="new-trip-btn"><span class="plus-icon">＋</span> Iniciar nova viagem</button>
-    <div class="trip-code-box" id="trip-code-toggle">
-      <div class="trip-code-label"><svg class="trip-code-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>Compartilhar e gerenciar viagem</div>
-    </div>
-  </div>
 </aside>
 
 <nav class="bottom-tabbar" id="bottom-tabbar">
   <button data-tab="resumo" class="active"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h3v-6h6v6h3a1 1 0 0 0 1-1V10"/></svg></span>Início</button>
-  <button data-tab="voos"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><path d="M22 2L15 22l-4-9-9-4 20-7z"/></svg></span>Voos</button>
-  <button data-tab="hoteis"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="1"/><line x1="8" y1="7" x2="8" y2="7"/><line x1="12" y1="7" x2="12" y2="7"/><line x1="16" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="8" y2="11"/><line x1="12" y1="11" x2="12" y2="11"/><line x1="16" y1="11" x2="16" y2="11"/><path d="M9 22v-4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4"/></svg></span>Hotéis</button>
-  <button data-tab="documentos"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg></span>Docs</button>
   <button data-tab="roteiro"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>Roteiro</button>
-  <button data-tab="checklist"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>Check</button>
-  <button data-tab="orcamento"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>Money</button>
+  <button data-tab="orcamento"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>Gastos</button>
+  <button type="button" id="more-tab-btn"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></span>Mais</button>
 </nav>
+
+<div id="more-sheet-overlay">
+  <div id="more-sheet" role="menu">
+    <button class="more-sheet-item" data-tab="voos"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><path d="M22 2L15 22l-4-9-9-4 20-7z"/></svg></span>Voos</button>
+    <button class="more-sheet-item" data-tab="hoteis"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="1"/><line x1="8" y1="7" x2="8" y2="7"/><line x1="12" y1="7" x2="12" y2="7"/><line x1="16" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="8" y2="11"/><line x1="12" y1="11" x2="12" y2="11"/><line x1="16" y1="11" x2="16" y2="11"/><path d="M9 22v-4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v4"/></svg></span>Hotéis</button>
+    <button class="more-sheet-item" data-tab="documentos"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg></span>Documentos</button>
+    <button class="more-sheet-item" data-tab="checklist"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>Checklist</button>
+    <button class="more-sheet-item" data-tab="config"><span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>Configurações</button>
+  </div>
+</div>
 
 <main>
 
@@ -1359,30 +1383,6 @@
         </div>
       </div>
       <div id="resumo-auto-summary" class="resumo-auto-summary"></div>
-    </div>
-
-    <div class="main-account-panel" id="admin-authorize-panel">
-      <div class="main-account-panel-title">Administração</div>
-      <div class="admin-authorize-toggle" id="admin-authorize-toggle">
-        <span>Clientes autorizados a usar o app</span>
-        <svg class="admin-authorize-chevron" id="admin-authorize-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-      </div>
-      <div class="admin-authorize-body" id="admin-authorize-body">
-        <p class="admin-authorize-hint">Só e-mails autorizados aqui conseguem entrar no app.</p>
-        <div class="admin-authorize-form">
-          <input type="email" id="admin-authorize-email-input" placeholder="e-mail@exemplo.com">
-          <button type="button" id="admin-authorize-btn">Autorizar</button>
-        </div>
-        <div id="admin-authorize-list"></div>
-      </div>
-    </div>
-
-    <div class="main-account-panel" id="account-logout-panel">
-      <div class="main-account-panel-title">Sua conta</div>
-      <div class="main-account-panel-row">
-        <span id="account-logout-email"></span>
-        <button type="button" id="account-logout-btn">🚪 Sair</button>
-      </div>
     </div>
   </div>
 
@@ -1513,14 +1513,11 @@
     </div>
 
     <div class="card">
-      <div class="field" style="max-width:260px;">
-        <label class="field-label">Moeda corrente dos gastos</label>
-        <select id="budget-currency"></select>
-      </div>
       <div class="budget-hero">
         <div class="left">
-          <label class="field-label" id="budget-total-label">Valor total disponível para a viagem</label>
-          <input type="number" id="budget-total" placeholder="Ex: 3000" step="0.01">
+          <div class="lbl">Orçamento total</div>
+          <div class="val" id="budget-total-display">—</div>
+          <button type="button" class="link-btn" data-goto-tab="config">Alterar em Configurações</button>
         </div>
         <div class="right">
           <div class="lbl">Saldo restante</div>
@@ -1591,6 +1588,62 @@
       <h3>🧾 Gastos lançados</h3>
       <div id="expense-list"></div>
       <p class="attach-empty" id="expense-empty" style="display:none;">Nenhum gasto lançado ainda.</p>
+    </div>
+  </div>
+
+  <!-- CONFIGURAÇÕES -->
+  <div class="tab" id="config">
+    <div class="page-title">Configurações</div>
+
+    <div class="card">
+      <h3>Viagem</h3>
+      <div class="field">
+        <label class="field-label">Viagem aberta neste aparelho</label>
+        <select id="config-trip-select"></select>
+      </div>
+      <div class="settings-list">
+        <button type="button" class="settings-row" id="trip-code-toggle"><svg class="settings-row-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>Compartilhar e gerenciar viagem<svg class="settings-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+        <button type="button" class="settings-row" id="new-trip-btn"><svg class="settings-row-icon primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Iniciar nova viagem<svg class="settings-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Financeiro</h3>
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">Moeda principal dos gastos</label>
+          <select id="budget-currency"></select>
+        </div>
+        <div class="field">
+          <label class="field-label" id="budget-total-label">Valor total disponível para a viagem</label>
+          <input type="number" id="budget-total" placeholder="Ex: 3000" step="0.01">
+        </div>
+      </div>
+      <p class="hint" style="margin:0;">A moeda principal já vem selecionada ao lançar um gasto e é a usada no saldo da aba Gastos.</p>
+    </div>
+
+    <div class="main-account-panel" id="admin-authorize-panel">
+      <div class="main-account-panel-title">Administração</div>
+      <div class="admin-authorize-toggle" id="admin-authorize-toggle">
+        <span>Clientes autorizados a usar o app</span>
+        <svg class="admin-authorize-chevron" id="admin-authorize-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="admin-authorize-body" id="admin-authorize-body">
+        <p class="admin-authorize-hint">Só e-mails autorizados aqui conseguem entrar no app.</p>
+        <div class="admin-authorize-form">
+          <input type="email" id="admin-authorize-email-input" placeholder="e-mail@exemplo.com">
+          <button type="button" id="admin-authorize-btn">Autorizar</button>
+        </div>
+        <div id="admin-authorize-list"></div>
+      </div>
+    </div>
+
+    <div class="main-account-panel" id="account-logout-panel">
+      <div class="main-account-panel-title">Sua conta</div>
+      <div class="main-account-panel-row">
+        <span id="account-logout-email"></span>
+        <button type="button" id="account-logout-btn">🚪 Sair</button>
+      </div>
     </div>
   </div>
 
@@ -3180,15 +3233,47 @@
   // controlam as mesmas abas — por isso selecionamos por [data-tab], não por
   // '.sidebar nav button', e sincronizamos o estado "active" nas duas.
   const buttons = document.querySelectorAll('[data-tab]');
-  buttons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tab = btn.dataset.tab;
-      buttons.forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.getElementById(tab).classList.add('active');
-      document.body.classList.toggle('on-home-tab', tab === 'resumo');
-      if (tab === 'orcamento' && currentFxRate == null) refreshFxRate();
-    });
+  // No celular, a barra de baixo só tem Início, Roteiro e Gastos — o resto
+  // fica no menu "Mais", que acende quando uma dessas abas está aberta.
+  const MORE_TABS = ['voos', 'hoteis', 'documentos', 'checklist', 'config'];
+  const moreTabBtn = document.getElementById('more-tab-btn');
+  const moreSheetOverlay = document.getElementById('more-sheet-overlay');
+
+  function showTab(tab) {
+    buttons.forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    moreTabBtn.classList.toggle('active', MORE_TABS.includes(tab));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(tab).classList.add('active');
+    document.body.classList.toggle('on-home-tab', tab === 'resumo');
+    moreSheetOverlay.classList.remove('open');
+    if (tab === 'orcamento' && currentFxRate == null) refreshFxRate();
+    if (tab === 'config') renderConfigTripSelect();
+  }
+  buttons.forEach(btn => btn.addEventListener('click', () => showTab(btn.dataset.tab)));
+  // Atalhos dentro do conteúdo (ex: "Alterar em Configurações" na aba Gastos).
+  document.addEventListener('click', (e) => {
+    const link = e.target.closest('[data-goto-tab]');
+    if (link) showTab(link.dataset.gotoTab);
+  });
+  moreTabBtn.addEventListener('click', () => moreSheetOverlay.classList.toggle('open'));
+  moreSheetOverlay.addEventListener('click', (e) => {
+    if (e.target === moreSheetOverlay) moreSheetOverlay.classList.remove('open');
+  });
+
+  // Seletor de viagem em Configurações — mesma lista e mesmo jeito de trocar
+  // do "Viagens salvas neste celular" (via ?join=, que recarrega o app).
+  function renderConfigTripSelect() {
+    const sel = document.getElementById('config-trip-select');
+    const trips = listLocalTrips().filter(t => t.code !== TRIP_CODE);
+    trips.unshift({ code: TRIP_CODE, title: state.tripTitle || '(sem título)' });
+    sel.innerHTML = trips.map(t => `<option value="${escapeAttr(t.code)}"${t.code === TRIP_CODE ? ' selected' : ''}>${escapeHtml(t.title)}</option>`).join('');
+  }
+  document.getElementById('config-trip-select').addEventListener('change', (e) => {
+    const code = e.target.value;
+    if (!code || code === TRIP_CODE) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('join', code);
+    window.location.href = url.toString();
   });
 
   // ---------- Countdown ----------
@@ -4801,6 +4886,7 @@
     const totals = expenseTotalsByCurrency();
     const spent = totals[state.budgetCurrency] || 0;
     const remaining = total - spent;
+    document.getElementById('budget-total-display').textContent = state.budgetTotal != null ? fmtMoney(total, state.budgetCurrency) : 'Não definido';
     budgetSpentEl.textContent = fmtMoney(spent, state.budgetCurrency);
     budgetRemainingEl.textContent = fmtMoney(remaining, state.budgetCurrency);
     budgetRemainingEl.classList.toggle('neg', remaining < 0);
