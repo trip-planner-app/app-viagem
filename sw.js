@@ -1,4 +1,4 @@
-const CACHE_NAME = 'viagem-app-v64';
+const CACHE_NAME = 'viagem-app-v65';
 const ASSETS = [
   './',
   './index.html',
@@ -37,8 +37,14 @@ self.addEventListener('activate', (event) => {
 // Só GET é cacheável, e deixamos passar direto qualquer coisa fora do nosso
 // próprio domínio + CDNs conhecidos (o Firebase Realtime Database sincroniza
 // por WebSocket, não por fetch, então não é afetado por isto).
+// Dados ao vivo (cotação, previsão do tempo) vão sempre direto à rede: antes
+// passavam pelo cache como o resto e a cotação ficava congelada no valor da
+// primeira consulta até a próxima versão do app.
+const LIVE_HOSTS = ['economia.awesomeapi.com.br', 'open.er-api.com', 'api.open-meteo.com', 'geocoding-api.open-meteo.com'];
+
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  if (LIVE_HOSTS.includes(new URL(event.request.url).hostname)) return;
 
   event.respondWith(
     caches.match(event.request).then((cached) => {
