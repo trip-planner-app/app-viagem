@@ -679,6 +679,8 @@
     opacity: .8;
     margin: 36px 0 4px;
   }
+  .app-credit-email { display: block; margin-top: 2px; font-weight: 500; font-size: var(--fs-xs); color: var(--muted); text-decoration: none; }
+  .app-credit-email[hidden] { display: none; }
   .main-account-panel {
     display: none;
     margin-top: 16px;
@@ -1830,7 +1832,7 @@
     </div>
   </div>
 
-  <footer class="app-credit">Trip Plan · Desenvolvido por EduardoRSMNunes</footer>
+  <footer class="app-credit">Trip Plan · Desenvolvido por EduardoRSMNunes<a class="app-credit-email" id="app-credit-email" hidden></a></footer>
 </main>
 
 <div id="pdf-modal-overlay">
@@ -6044,6 +6046,17 @@
       }).catch(() => {});
     });
   }
+
+  // E-mail de contato no rodapé, montado só na hora de mostrar: o código da
+  // página é público e assim robôs que colhem endereços não o encontram.
+  (function () {
+    const el = document.getElementById('app-credit-email');
+    if (!el) return;
+    const addr = ['eduardorsmnunes', 'hotmail.com'].join('@');
+    el.href = 'mailto:' + addr + '?subject=' + encodeURIComponent('Trip Plan');
+    el.textContent = addr;
+    el.hidden = false;
+  })();
 
   function showUpdateBanner() {
     const el = document.getElementById('update-banner');
