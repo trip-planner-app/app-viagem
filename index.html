@@ -4027,6 +4027,95 @@
     }
   }
 
+  // ---------- Leitura de fotos e prints (OCR) ----------
+  // Tesseract.js reconhece o texto de imagens no próprio aparelho. É pesado
+  // (motor + dicionários de português e inglês, ~10 MB), então só é baixado
+  // na primeira vez que alguém anexa uma foto/print — depois fica guardado
+  // (o próprio Tesseract guarda os dicionários; o resto fica no cache).
+  // Também lê PDFs escaneados (só imagem, sem texto dentro).
+  // var: pode ser usada antes desta linha rodar (ver TDZ nas notas do app).
+  var ocrWorkerPromise = null;
+  function loadScriptOnce(src) {
+    return new Promise((resolve, reject) => {
+      if (document.querySelector('script[data-src="' + src + '"]')) return resolve();
+      const s = document.createElement('script');
+      s.src = src;
+      s.dataset.src = src;
+      s.onload = () => resolve();
+      s.onerror = () => { s.remove(); reject(new Error('falha ao carregar ' + src)); };
+      document.head.appendChild(s);
+    });
+  }
+  function getOcrWorker() {
+    if (!ocrWorkerPromise) {
+      ocrWorkerPromise = (async () => {
+        await loadScriptOnce('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js');
+        return Tesseract.createWorker(['por', 'eng']);
+      })().catch(e => { ocrWorkerPromise = null; throw e; });
+    }
+    return ocrWorkerPromise;
+  }
+  // Reduz imagens muito grandes (foto de 12 MP) — o OCR fica bem mais rápido
+  // e não perde precisão em texto de tamanho normal.
+  function prepImageForOcr(dataUrl) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 2200;
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
+        if (scale === 1) return resolve(dataUrl);
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * scale);
+        c.height = Math.round(img.height * scale);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        resolve(c.toDataURL('image/jpeg', 0.92));
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  }
+  async function ocrImage(dataUrl) {
+    try {
+      const worker = await withTimeout(getOcrWorker(), 90000);
+      const { data } = await withTimeout(worker.recognize(await prepImageForOcr(dataUrl)), 90000);
+      return (data && data.text) || '';
+    } catch (e) {
+      return '';
+    }
+  }
+  function hasRealText(text) { return (text || '').replace(/\s/g, '').length >= 40; }
+  function isImageData(d) { return /^data:image\//i.test(d || ''); }
+  function isPdfData(d) { return /^data:application\/pdf/i.test(d || ''); }
+
+  // Texto de qualquer arquivo: PDF com texto direto; foto/print ou PDF
+  // escaneado pelo OCR (com aviso, porque leva alguns segundos).
+  async function extractFileText(dataUrl, name) {
+    if (isPdfData(dataUrl)) {
+      const text = await extractPdfText(dataUrl);
+      if (hasRealText(text)) return text;
+      const img = await renderPdfFirstPageToDataUrl(dataUrl);
+      if (!img) return text;
+      showToast('PDF escaneado: lendo a imagem de "' + (name || 'arquivo') + '"… isso leva alguns segundos.', 60000);
+      return await ocrImage(img);
+    }
+    if (isImageData(dataUrl)) {
+      showToast('Lendo a imagem' + (name ? ' "' + name + '"' : '') + '… isso leva alguns segundos' + (ocrWorkerPromise ? '.' : ' (na primeira vez, um pouco mais).'), 60000);
+      return await ocrImage(dataUrl);
+    }
+    return '';
+  }
+
+  // Passaporte: a zona de leitura mecânica (as duas linhas com "<<<" no pé
+  // da página) traz a validade em AAMMDD, mais confiável que o texto impresso.
+  function parsePassportMrzExpiry(text) {
+    const flat = (text || '').toUpperCase().replace(/[^A-Z0-9<\n]/g, '').replace(/\n/g, '');
+    // Nacionalidade + nascimento (+ dígito) + sexo + validade. Tolerante a
+    // uma letra trocada/sobrando no nascimento (erro comum do OCR).
+    const m = flat.match(/[A-Z]{3}[0-9A-Z]{6,8}[MF<](\d{2})(\d{2})(\d{2})\d/);
+    if (!m) return '';
+    return readerIso(2000 + parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+  }
+
   const READER_MONTHS = {
     jan: 0, janeiro: 0, january: 0, ene: 0, enero: 0,
     fev: 1, fevereiro: 1, feb: 1, february: 1, febrero: 1,
@@ -4068,7 +4157,7 @@
     const found = [];
     const push = (iso, m) => { if (iso) found.push({ iso, index: m.index, end: m.index + m[0].length }); };
     let m;
-    const reName = new RegExp('(\\d{1,2})(?:º|°)?\\s*(?:de\\s+)?' + MONTH_WORD + '(?:\\s*(?:de\\s+|,\\s*)?(\\d{4}))?', 'gi');
+    const reName = new RegExp('(\\d{1,2})(?:º|°)?\\s*(?:de\\s+)?' + MONTH_WORD + '(?:\\s*\\/\\s*[A-Za-z]{3,10}\\.?)?(?:\\s*(?:de\\s+|,\\s*)?(\\d{4}))?', 'gi');
     while ((m = reName.exec(str))) {
       const mon = READER_MONTHS[m[2].toLowerCase()];
       if (mon === undefined) continue;
@@ -4324,6 +4413,10 @@
     el.classList.add('show');
     clearTimeout(showToast._t);
     showToast._t = setTimeout(() => el.classList.remove('show'), ms || 4500);
+  }
+  function hideToast() {
+    const el = document.getElementById('app-toast');
+    if (el) el.classList.remove('show');
   }
 
   async function readAttachmentData(f) {
@@ -4852,14 +4945,17 @@
   async function readFlightFromData(data, isPdf) {
     const imageDataUrl = isPdf ? await renderPdfFirstPageToDataUrl(data) : data;
     const parsed = imageDataUrl ? await decodeBCBPFromImageDataUrl(imageDataUrl) : null;
-    const fromText = isPdf ? parseFlightText(await extractPdfText(data)) : null;
+    // Texto: direto do PDF; de foto/print (ou PDF escaneado) via OCR — é o
+    // que traz horários e chegada, que o código de barras não tem.
+    const fromText = parseFlightText(await extractFileText(data, ''));
+    hideToast();
     if (!parsed && !fromText) return null;
     const fields = parsed ? bcbpToVooFields(parsed) : { meta: '' };
     if (fromText) {
       ['codigo', 'origem', 'destino', 'origemData', 'origemHora', 'destinoData', 'destinoHora', 'localizador'].forEach(k => {
         if (!fields[k] && fromText[k]) fields[k] = fromText[k];
       });
-      if (!parsed) fields.meta = (fromText.assento ? 'Assento ' + fromText.assento + ' · ' : '') + 'lido do PDF anexado';
+      if (!parsed) fields.meta = (fromText.assento ? 'Assento ' + fromText.assento + ' · ' : '') + 'lido do arquivo anexado';
     }
     return fields;
   }
@@ -4867,8 +4963,8 @@
   // Arquivo anexado dentro de um voo que já existe: completa os campos vazios.
   async function fillVooFromFiles(voo, files) {
     for (const f of files) {
-      const isPdf = /^data:application\/pdf/i.test(f.data);
-      if (!isPdf && !/^data:image\//i.test(f.data)) continue;
+      const isPdf = isPdfData(f.data);
+      if (!isPdf && !isImageData(f.data)) continue;
       showToast('Lendo "' + f.name + '"…', 15000);
       const fields = await readFlightFromData(f.data, isPdf);
       if (!fields) { showToast('Não encontramos dados de voo em "' + f.name + '". O arquivo ficou anexado.'); continue; }
@@ -4895,7 +4991,7 @@
       el.className = 'hint';
       el.style.textAlign = 'center';
       el.style.margin = '0 0 12px';
-      el.textContent = 'Lendo o cartão de embarque…';
+      el.textContent = 'Lendo o cartão de embarque… (foto ou print leva alguns segundos)';
       voosListEl.parentNode.insertBefore(el, voosListEl);
     } else if (el) {
       el.remove();
@@ -4937,7 +5033,7 @@
     renderVoos();
 
     if (!fields) {
-      alert('Anexamos o arquivo, mas não conseguimos ler os dados automaticamente (nenhum código de barras reconhecível). Preencha os campos manualmente no card do voo.');
+      alert('Anexamos o arquivo, mas não conseguimos ler os dados automaticamente (nem código de barras nem texto reconhecível). Preencha os campos manualmente no card do voo.');
     } else {
       const faltando = [];
       if (!fields.origemHora) faltando.push('hora de partida');
@@ -5015,9 +5111,11 @@
     opts = opts || {};
     let fields = null;
     for (const f of files) {
-      if (!/^data:application\/pdf/i.test(f.data || '')) continue;
+      if (!isPdfData(f.data) && !isImageData(f.data)) continue;
+      // Leitura automática em segundo plano não dispara OCR (pesado) sozinha.
+      if (opts.silent && !isPdfData(f.data)) continue;
       if (!opts.silent) showToast('Lendo o voucher…', 15000);
-      fields = parseHotelVoucherText(await extractPdfText(f.data));
+      fields = parseHotelVoucherText(opts.silent ? await extractPdfText(f.data) : await extractFileText(f.data, f.name));
       if (fields) break;
     }
     // Durante a leitura (assíncrona) a nuvem pode ter trocado o estado
@@ -5026,9 +5124,9 @@
     if (!current) return false;
     h = current;
     if (!fields) {
-      if (!opts.silent) showToast(files.some(f => /^data:image\//i.test(f.data || ''))
-        ? 'Voucher em foto não pode ser lido automaticamente — anexe o PDF da reserva, ou preencha os campos.'
-        : 'Não encontramos os dados da reserva neste arquivo. Ele ficou anexado; preencha os campos.', 6000);
+      if (!opts.silent) showToast(files.some(f => isImageData(f.data))
+        ? 'Não conseguimos ler os dados da reserva nesta imagem (tente um print mais nítido, ou o PDF). Ela ficou anexada; preencha os campos.'
+        : 'Não encontramos os dados da reserva neste arquivo. Ele ficou anexado; preencha os campos.', 7000);
       return false;
     }
     let filled = [], differs = [];
@@ -5571,7 +5669,10 @@
       } catch (e) {
         alert('Não foi possível salvar o arquivo "' + file.name + '". Tente um arquivo menor.');
       }
-      if (!validadeLida) validadeLida = parseDocValidityText(await extractPdfText(data));
+      if (!validadeLida && (isPdfData(data) || isImageData(data))) {
+        const text = await extractFileText(data, file.name);
+        validadeLida = parsePassportMrzExpiry(text) || parseDocValidityText(text);
+      }
     }
     // Validade lida do PDF (ex: apólice do seguro, ESTA aprovado): só
     // preenche se o campo estiver vazio.
@@ -5579,6 +5680,8 @@
     if (validadeLida && docItem && !docItem.validade) {
       docItem.validade = validadeLida;
       showToast('Validade lida do arquivo: ' + fmtShortDate(validadeLida) + ' ' + validadeLida.slice(0, 4) + '.');
+    } else {
+      hideToast();
     }
     saveState();
     renderDocs();
