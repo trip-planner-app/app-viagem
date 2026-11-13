@@ -1261,6 +1261,40 @@
   .daily-budget-expense-item:first-child { border-top: none; }
   .daily-budget-expense-item .amt { font-weight: 700; color: var(--text); flex: none; }
 
+  /* Lista de compras (aba Gastos): limite por viajante, dentro do orçamento geral. */
+  .shop-body { display: none; margin-top: 14px; }
+  .shop-body.expanded { display: block; }
+  .shop-add { display: flex; flex-direction: column; gap: 8px; }
+  .shop-add input, .shop-add select { margin: 0; }
+  .shop-add-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+  .shop-add-row.single { grid-template-columns: minmax(0, 1fr); }
+  .shop-warn { color: var(--danger); font-weight: 700; margin: 12px 0 0; }
+  .shop-group { border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--card2); padding: 12px; margin-top: 12px; }
+  .shop-group-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .shop-group-name { font-weight: 800; color: var(--text); font-size: var(--fs-md); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .shop-limit { display: flex; align-items: center; gap: 6px; flex: none; font-size: var(--fs-xs); color: var(--muted); font-weight: 700; }
+  .shop-limit input { width: 96px; margin: 0; padding: 6px 8px; font-size: var(--fs-sm); text-align: right; }
+  .shop-stats { display: flex; justify-content: space-between; gap: 6px; margin-top: 10px; font-size: var(--fs-xs); color: var(--muted); font-weight: 700; flex-wrap: wrap; }
+  .shop-stats b { color: var(--text); font-weight: 800; }
+  .shop-stats .neg b, .shop-stats .neg { color: var(--danger); }
+  .shop-group .progress-bar { margin-top: 6px; background: var(--card); position: relative; }
+  .shop-group .progress-bar .planned { position: absolute; top: 0; bottom: 0; background: var(--accent2); opacity: .3; }
+  .shop-group .progress-bar .fill { position: relative; }
+  .shop-items { margin-top: 8px; }
+  .shop-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px dashed var(--border); }
+  .shop-item:first-child { border-top: none; }
+  .shop-item input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--accent); flex: none; margin: 0; }
+  .shop-item .nm { flex: 1; min-width: 0; font-size: var(--fs-md); color: var(--text); overflow-wrap: anywhere; }
+  .shop-item.done .nm { text-decoration: line-through; color: var(--muted); }
+  .shop-item .val { width: 88px; flex: none; margin: 0; padding: 6px 8px; font-size: var(--fs-sm); font-weight: 700; text-align: right; }
+  .shop-item .val.need { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(255,140,60,.25); }
+  .shop-item .del { flex: none; background: none; border: none; color: var(--muted); font-size: var(--fs-md); padding: 4px 2px; cursor: pointer; line-height: 1; }
+  .shop-empty { font-size: var(--fs-sm); color: var(--muted); margin: 8px 0 0; }
+
+  /* Aviso rápido (leitura automática de arquivos etc.), acima da barra de abas. */
+  #app-toast { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom)); transform: translate(-50%, 20px); width: max-content; max-width: min(440px, calc(100vw - 32px)); background: #1b2540; color: #fff; border: 1px solid rgba(255,255,255,.12); border-radius: var(--radius-md); padding: 11px 14px; font-size: var(--fs-sm); font-weight: 600; line-height: 1.4; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,.25); z-index: 2000; opacity: 0; pointer-events: none; transition: opacity .2s ease, transform .2s ease; }
+  #app-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
   /* Responsive: collapse sidebar to a top bar on small screens */
   /* ---------------- Barra de abas fixa (navegação nativa no mobile) ---------------- */
   .bottom-tabbar {
@@ -1747,6 +1781,29 @@
       <p class="attach-empty" id="expense-empty" style="display:none;">Nenhum gasto lançado ainda.</p>
     </div>
 
+    <div class="card" id="shop-card">
+      <div class="daily-budget-card-toggle" id="shop-toggle">
+        <h3><svg class="card-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Lista de compras</h3>
+        <div class="daily-budget-card-toggle-right">
+          <span class="daily-budget-today-summary" id="shop-summary"></span>
+          <svg class="daily-budget-chevron" id="shop-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
+      <div class="shop-body" id="shop-body">
+        <div class="shop-add">
+          <input type="text" id="shop-item-name" placeholder="Item — ex: Tênis Nike" autocomplete="off">
+          <div class="shop-add-row">
+            <input type="number" id="shop-item-value" step="0.01" min="0" inputmode="decimal" placeholder="Valor (opcional)" aria-label="Valor do item">
+            <select id="shop-item-traveler" aria-label="Viajante"></select>
+          </div>
+          <button type="button" class="btn primary" id="shop-add-btn" style="width:100%;">+ Adicionar à lista</button>
+        </div>
+        <p class="hint shop-warn" id="shop-limits-warn" style="display:none;"></p>
+        <div id="shop-groups"></div>
+        <p class="hint" style="margin:12px 0 0;">Marque o item quando comprar: o valor entra nos gastos (categoria Compras), abate do orçamento geral e do limite de compras do viajante.</p>
+      </div>
+    </div>
+
     <div class="card" id="expense-breakdown-card" style="display:none;">
       <h3><svg class="card-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Resumo por categoria</h3>
       <div id="expense-breakdown-body"></div>
@@ -2099,7 +2156,8 @@
     budgetCurrency: 'USD',
     fxForeignCurrency: 'USD',
     expenses: [], // { traveler, category, amount, desc, date, tripDate }
-    dailyBudgets: {} // { 'YYYY-MM-DD': tetoNaBudgetCurrency }
+    dailyBudgets: {}, // { 'YYYY-MM-DD': tetoNaBudgetCurrency }
+    shopping: { items: [], limits: {} } // items: { id, nome, traveler, valor, currency, comprado }; limits: { viajante: teto }
   };
 
   // Ponto de partida de qualquer viagem nova (seu amigo, ou você mesmo ao
@@ -2122,7 +2180,8 @@
     budgetCurrency: 'USD',
     fxForeignCurrency: 'USD',
     expenses: [],
-    dailyBudgets: {}
+    dailyBudgets: {},
+    shopping: { items: [], limits: {} }
   };
 
   let state = loadState();
@@ -2149,6 +2208,9 @@
     // da época (não tinham outra opção quando foram criados).
     s.expenses.forEach(e => { if (!e.currency) e.currency = s.budgetCurrency; });
     s.dailyBudgets = s.dailyBudgets && typeof s.dailyBudgets === 'object' ? s.dailyBudgets : {};
+    s.shopping = s.shopping && typeof s.shopping === 'object' ? s.shopping : {};
+    s.shopping.items = Array.isArray(s.shopping.items) ? s.shopping.items : [];
+    s.shopping.limits = s.shopping.limits && typeof s.shopping.limits === 'object' ? s.shopping.limits : {};
     // Gastos lançados antes de existir o campo "dia da viagem" herdam a data
     // (local, não UTC) do momento em que foram lançados.
     s.expenses.forEach(e => {
@@ -2322,6 +2384,7 @@
     renderExpenses();
     renderBudgetSummary();
     renderDailyBudgets();
+    renderShopping();
   }
 
   // ---------- Login obrigatório + lista global de clientes autorizados ----------
@@ -3934,6 +3997,343 @@
     });
   }
 
+  // ---------- Leitura automática de arquivos (voucher, cartão, documento) ----------
+  // Tudo roda no próprio aparelho: o texto sai do PDF pelo pdf.js (o mesmo do
+  // visualizador) e os campos são reconhecidos por padrões — rótulos como
+  // "Check-in", "Endereço", "Partida", datas em português/inglês/espanhol e
+  // horários "16h", "16:00", "4:00 PM". Nada é enviado para fora. Fotos e
+  // PDFs escaneados (só imagem, sem texto) não têm texto para ler — nesses
+  // casos o arquivo continua anexado e os campos ficam para preencher à mão.
+  async function extractPdfText(dataUrl) {
+    if (!window.pdfjsLib || !/^data:application\/pdf/i.test(dataUrl || '')) return '';
+    try {
+      const pdf = await withTimeout(pdfjsLib.getDocument({ data: base64ToUint8Array(dataUrl) }).promise, 15000);
+      let text = '';
+      for (let i = 1; i <= Math.min(pdf.numPages, 6); i++) {
+        const page = await withTimeout(pdf.getPage(i), 10000);
+        const tc = await withTimeout(page.getTextContent(), 10000);
+        let lastY = null;
+        tc.items.forEach(it => {
+          const y = it.transform[5];
+          if (lastY !== null) text += Math.abs(y - lastY) > 2 ? '\n' : ' ';
+          text += it.str;
+          lastY = y;
+        });
+        text += '\n';
+      }
+      return text;
+    } catch (e) {
+      return '';
+    }
+  }
+
+  const READER_MONTHS = {
+    jan: 0, janeiro: 0, january: 0, ene: 0, enero: 0,
+    fev: 1, fevereiro: 1, feb: 1, february: 1, febrero: 1,
+    mar: 2, 'março': 2, marco: 2, march: 2, marzo: 2,
+    abr: 3, abril: 3, apr: 3, april: 3,
+    mai: 4, maio: 4, may: 4, mayo: 4,
+    jun: 5, junho: 5, june: 5, junio: 5,
+    jul: 6, julho: 6, july: 6, julio: 6,
+    ago: 7, agosto: 7, aug: 7, august: 7,
+    set: 8, setembro: 8, sep: 8, sept: 8, september: 8, septiembre: 8,
+    out: 9, outubro: 9, oct: 9, october: 9, octubre: 9,
+    nov: 10, novembro: 10, november: 10, noviembre: 10,
+    dez: 11, dezembro: 11, dec: 11, december: 11, dic: 11, diciembre: 11
+  };
+  const MONTH_WORD = '([A-Za-zçÇ]{3,10})\\.?';
+
+  // Ano de referência para datas sem ano ("23 NOVEMBRO"): o do primeiro voo
+  // da viagem, ou o atual; se cair muito no passado, vai para o ano seguinte.
+  function readerRefDate() {
+    const first = state.voos.map(v => v.origemData).filter(Boolean).sort()[0];
+    return first ? new Date(first + 'T00:00:00') : new Date();
+  }
+  function readerIso(y, m, d) {
+    if (m < 0 || m > 11 || d < 1 || d > 31) return '';
+    const dt = new Date(y, m, d);
+    if (dt.getMonth() !== m) return '';
+    return localDateStr(dt);
+  }
+  function readerIsoNoYear(m, d) {
+    const ref = readerRefDate();
+    let iso = readerIso(ref.getFullYear(), m, d);
+    if (iso && new Date(iso + 'T00:00:00') < new Date(ref.getTime() - 180 * 86400000)) iso = readerIso(ref.getFullYear() + 1, m, d);
+    return iso;
+  }
+  function fullYear(y) { y = parseInt(y, 10); return y < 100 ? 2000 + y : y; }
+
+  // Todas as datas encontradas no texto, em ordem: { iso, index, end }.
+  function findDates(str) {
+    const found = [];
+    const push = (iso, m) => { if (iso) found.push({ iso, index: m.index, end: m.index + m[0].length }); };
+    let m;
+    const reName = new RegExp('(\\d{1,2})(?:º|°)?\\s*(?:de\\s+)?' + MONTH_WORD + '(?:\\s*(?:de\\s+|,\\s*)?(\\d{4}))?', 'gi');
+    while ((m = reName.exec(str))) {
+      const mon = READER_MONTHS[m[2].toLowerCase()];
+      if (mon === undefined) continue;
+      push(m[3] ? readerIso(parseInt(m[3], 10), mon, parseInt(m[1], 10)) : readerIsoNoYear(mon, parseInt(m[1], 10)), m);
+    }
+    const reNameFirst = new RegExp(MONTH_WORD + '\\s+(\\d{1,2})(?:st|nd|rd|th)?,?\\s+(\\d{4})', 'gi');
+    while ((m = reNameFirst.exec(str))) {
+      const mon = READER_MONTHS[m[1].toLowerCase()];
+      if (mon === undefined) continue;
+      push(readerIso(parseInt(m[3], 10), mon, parseInt(m[2], 10)), m);
+    }
+    const reNum = /(^|[^\d])(\d{1,2})[\/.](\d{1,2})(?:[\/.](\d{2,4}))?(?![\d])/g;
+    while ((m = reNum.exec(str))) {
+      // "5651.863.156" (nº de reserva) e valores "169.75" não são datas.
+      if (m[3].length === 1 && !m[4]) continue;
+      if (/\d[.,]$/.test(str.slice(0, m.index + m[1].length))) continue;
+      const fake = { index: m.index + m[1].length, 0: m[0].slice(m[1].length) };
+      push(m[4] ? readerIso(fullYear(m[4]), parseInt(m[3], 10) - 1, parseInt(m[2], 10)) : readerIsoNoYear(parseInt(m[3], 10) - 1, parseInt(m[2], 10)), fake);
+    }
+    const reIso = /(\d{4})-(\d{2})-(\d{2})/g;
+    while ((m = reIso.exec(str))) push(readerIso(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10)), m);
+    return found.sort((a, b) => a.index - b.index);
+  }
+
+  // Primeiro horário do trecho, como "HH:MM". Aceita 16h, 16h00, 16:00,
+  // "16 : 00" e 4:00 PM.
+  function findTime(str) {
+    const ampm = str.match(/(^|[^\d])(\d{1,2})(?::(\d{2}))?\s*([ap])\.?\s?m\.?(?![a-z])/i);
+    const h24 = str.match(/(^|[^\d])([01]?\d|2[0-3])\s*(?::\s*([0-5]\d)|h\s*([0-5]\d)?(?![a-z]))/i);
+    const pick = (ampm && (!h24 || ampm.index <= h24.index)) ? 'ampm' : (h24 ? 'h24' : null);
+    if (pick === 'ampm') {
+      let h = parseInt(ampm[2], 10) % 12;
+      if (ampm[4].toLowerCase() === 'p') h += 12;
+      return String(h).padStart(2, '0') + ':' + (ampm[3] || '00');
+    }
+    if (pick === 'h24') return String(parseInt(h24[2], 10)).padStart(2, '0') + ':' + (h24[3] || h24[4] || '00');
+    return '';
+  }
+
+  // Data (e hora) que vem logo depois de um rótulo. Tenta cada rótulo em
+  // ordem e cada ocorrência dele, até achar uma data por perto — assim um
+  // "check-in" solto num parágrafo de regras não atrapalha.
+  function dateAfterLabel(text, labels, stopRe) {
+    for (const label of labels) {
+      const re = new RegExp(label.source, 'gi');
+      let m;
+      while ((m = re.exec(text))) {
+        let win = text.slice(m.index + m[0].length, m.index + m[0].length + 160);
+        if (stopRe) {
+          const stop = win.search(stopRe);
+          if (stop > 0) win = win.slice(0, stop);
+        }
+        const d = findDates(win)[0];
+        if (!d || d.index > 70) continue;
+        return { date: d.iso, time: findTime(win.slice(d.end, d.end + 70)) };
+      }
+    }
+    return null;
+  }
+
+  function textAfterLabel(text, labelRe, stopRe, maxLen) {
+    const m = text.match(labelRe);
+    if (!m) return '';
+    let s = text.slice(m.index + m[0].length, m.index + m[0].length + (maxLen || 200));
+    if (stopRe) {
+      const stop = s.search(stopRe);
+      if (stop >= 0) s = s.slice(0, stop);
+    }
+    return s.replace(/^[\s:–-]+/, '').replace(/\s+/g, ' ').trim();
+  }
+
+  // Valores em dinheiro: "R$ 907", "R $ 1.716,98", "US$ 169,75", "USD 82.17".
+  function findMoney(str) {
+    const out = [];
+    const re = /(R\s?\$|US\s?\$|U\$|USD|BRL|EUR|€|\$)\s?(\d[\d.,]*\d|\d)/g;
+    let m;
+    while ((m = re.exec(str))) {
+      const sym = m[1].replace(/\s/g, '').toUpperCase();
+      const label = sym === 'R$' || sym === 'BRL' ? 'R$' : sym === '€' || sym === 'EUR' ? '€' : 'US$';
+      if (!out.includes(label + ' ' + m[2])) out.push(label + ' ' + m[2]);
+    }
+    return out;
+  }
+
+  function fmtShortDate(iso) {
+    const d = new Date(iso + 'T00:00:00');
+    return d.getDate() + ' ' + ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'][d.getMonth()];
+  }
+
+  // Cidade a partir do endereço: tira rua (com número), estado (FL), CEP e
+  // país; fica a última parte que sobrou ("…, Celebration, Orlando, FL" → Orlando).
+  function cityFromAddress(addr) {
+    const parts = addr.split(',').map(p => p.replace(/\b(Estados Unidos|United States|USA|EUA|Brasil|Brazil|Espanha|Spain|Portugal|França|France|Itália|Italy|México|Mexico|Argentina)\b/gi, '').replace(/\b\d{4,6}(-\d{3,4})?\b/g, '').trim()).filter(Boolean);
+    const cand = parts.slice(1).filter(p => !/^[A-Z]{2}$/.test(p) && !/\d/.test(p));
+    return cand.length ? cand[cand.length - 1] : '';
+  }
+
+  const HOTEL_WORDS = /\b(hotel|hot[ée]is|inn|resort|suites?|wyndham|marriott|hilton|hyatt|ibis|motel|lodge|pousada|hostel|apart|plaza|palace|ramada|holiday|sheraton|westin|radisson|best western|accor|novotel|mercure|courtyard|hampton|days inn|la quinta|airbnb|residence)\b/i;
+  const HOTEL_LINE_SKIP = /reserva|booking|confirma|itiner|endere|address|telefone|phone|e-?mail|www\.|https?:|detalhes|obrigad|thank|voucher|check|:/i;
+
+  function parseHotelVoucherText(text) {
+    if (!text || text.replace(/\s/g, '').length < 40) return null;
+    const lines = text.split('\n').map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
+    const out = {};
+
+    // Nome: primeira linha do topo com cara de hotel; a linha seguinte entra
+    // junto quando é continuação ("Ramada by Wyndham" + "Kissimmee Gateway").
+    const top = lines.slice(0, 25);
+    let ni = top.findIndex(l => HOTEL_WORDS.test(l) && !HOTEL_LINE_SKIP.test(l) && l.length <= 70);
+    if (ni < 0) {
+      const ai = top.findIndex(l => /^(endere[çc]o|address|direcci[óo]n)\b/i.test(l));
+      if (ai > 0 && !HOTEL_LINE_SKIP.test(top[ai - 1])) ni = ai - 1;
+    }
+    if (ni >= 0) {
+      let name = top[ni];
+      const next = top[ni + 1];
+      if (next && next.length <= 40 && !/\d/.test(next) && !HOTEL_LINE_SKIP.test(next) && !/^(quarto|room|estadia|stay|localiza)/i.test(next)) name += ' ' + next;
+      out.nome = name.replace(/\s*\/\s*/g, ' / ').replace(/\s+/g, ' ').trim();
+    }
+
+    const ci = dateAfterLabel(text, [/check-?\s?in/, /\bentrada\b/, /\bllegada\b/, /\barrival\b/], /check-?\s?out|\bsa[íi]da\b|\bsalida\b|\bdeparture\b/i);
+    const co = dateAfterLabel(text, [/check-?\s?out/, /\bsa[íi]da\b/, /\bsalida\b/, /\bdeparture\b/]);
+    if (ci) { out.checkinData = ci.date; if (ci.time) out.checkinHora = ci.time; }
+    if (co && (!ci || co.date > ci.date)) { out.checkoutData = co.date; if (co.time) out.checkoutHora = co.time; }
+    if (!out.checkinData) {
+      // Cabeçalho tipo "25 de nov. de 2026 – 27 de nov. de 2026".
+      const ds = findDates(text.slice(0, 500));
+      if (ds.length >= 2 && ds[1].iso > ds[0].iso) { out.checkinData = ds[0].iso; out.checkoutData = out.checkoutData || ds[1].iso; }
+    }
+
+    let addr = textAfterLabel(text, /(endere[çc]o|address|direcci[óo]n)\s*:?/i, /ver no mapa|view map|telefone|phone|tel[ée]fono|coordenadas|gps|e-?mail|check-?in|\n\s*\n/i, 220);
+    if (!addr) addr = textAfterLabel(text, /\blocaliza[çc][ãa]o\b\s*:?/i, /\n/, 160);
+    if (addr && /\d/.test(addr) && addr.length >= 8) out.endereco = addr.slice(0, 160);
+
+    const estadia = text.match(/estadia em ([^\n]{2,40})/i);
+    out.badge = (estadia && estadia[1].trim()) || (out.endereco ? cityFromAddress(out.endereco) : '');
+
+    // Cancelamento grátis: prefere a frase com data exata ("reembolso total
+    // se cancelar antes das 23:59 de 21 de novembro"); senão guarda o texto
+    // ("1 dia antes da chegada").
+    const cancPatterns = [
+      /reembolso\s+total\s+se\s+cancelar\s+antes\s+([\s\S]{3,90})/i,
+      /cancelamento\s+(?:gr[áa]tis|gratuito|sem custo)\s+at[ée]\s+([\s\S]{3,90})/i,
+      /cancelar\s+(?:gr[áa]tis|gratuitamente|sem custo)\s+at[ée]\s+([\s\S]{3,90})/i,
+      /free cancell?ation\s+(?:until|before)\s+([\s\S]{3,90})/i,
+      /cancelamento\s+(?:gr[áa]tis|gratuito|gratuitamente|sem custo)[^\n]{0,40}?\bat[ée]\s+([\s\S]{3,90})/i
+    ];
+    for (const re of cancPatterns) {
+      const canc = text.match(re);
+      if (!canc) continue;
+      const win = canc[1].replace(/\s+/g, ' ');
+      const cut = win.split(/\s*\(|\.\s+[A-ZÀ-Ú]/)[0].trim();
+      const d = findDates(cut)[0] || findDates(win)[0];
+      if (d) {
+        const t = findTime(cut) || findTime(win.slice(d.end, d.end + 30));
+        out.cancelamento = fmtShortDate(d.iso) + (t ? ', ' + t.replace(':00', 'h').replace(':', 'h') : '');
+        break;
+      }
+      if (!/^\s*(?:às|as|at)?\s*\d{1,2}\s*(?:h|:)/i.test(cut)) { out.cancelamento = cut.replace(/^(?:às|as)\s+/i, '').slice(0, 50); break; }
+    }
+
+    const extras = [];
+    const conf = text.match(/(?:n[úu]mero de confirma[çc][ãa]o|confirmation number|n[°º.]?\s*do itiner[áa]rio[^:\n]*|reserva\s+\w+\s+n[°º.]|n[°º.]\s*(?:da|de)\s*reserva|c[óo]digo da reserva|booking (?:number|reference)|localizador|confirma[çc][ãa]o)\s*:?\s*([A-Z0-9][A-Z0-9.\-]{3,}\d)/i);
+    if (conf && /\d/.test(conf[1])) extras.push('Confirmação: ' + conf[1]);
+    const pin = text.match(/(?:c[óo]digo\s+)?\bPIN\b\s*:?\s*(\d{3,8})/i);
+    if (pin) extras.push('PIN: ' + pin[1]);
+    const tel = text.match(/(?:telefone|phone|tel[ée]fono|tel\.)\s*:?\s*(\+?\d[\d\s().\-\/]{6,30}\d)/i);
+    if (tel) extras.push('Telefone: ' + tel[1].replace(/\s+/g, ' ').trim());
+    // Valor: o primeiro rótulo de total seguido de perto por um valor em
+    // dinheiro ("Total R$ 1.965,45", "Preço (para 2 hóspedes) aprox. R$ 907").
+    let money = [];
+    for (const re of [/pre[çc]o\s*\(para[^)]*\)/i, /(?:valor|pre[çc]o)\s+total/i, /\btotal\b/i, /\bpre[çc]o\b/i]) {
+      const g = new RegExp(re.source, 'gi');
+      let m;
+      while ((m = g.exec(text)) && !money.length) {
+        const after = m.index + m[0].length;
+        money = findMoney(text.slice(after, after + 60).replace(/\s+/g, ' ').replace(/^(?:\s*(?:aprox\.?|approx\.?|:|de|da|reserva))*\s*/i, '').slice(0, 45));
+      }
+      if (money.length) break;
+    }
+    if (money.length) extras.push('Valor: ' + money.slice(0, 2).join(' · '));
+    if (extras.length) out.extras = extras.join(' · ');
+
+    const filled = Object.keys(out).filter(k => out[k]);
+    return filled.length >= 2 ? out : null;
+  }
+
+  function parseFlightText(text) {
+    if (!text || text.replace(/\s/g, '').length < 20) return null;
+    const out = {};
+    const code = text.match(/\b(?:voo|flight|vuelo|vôo)\s*(?:n[º°o.]*\s*)?:?\s*([A-Z][A-Z0-9]|[0-9][A-Z])\s?(\d{1,4})\b/i);
+    if (code) out.codigo = code[1].toUpperCase() + ' ' + code[2];
+    const paren = [...text.matchAll(/\(([A-Z]{3})\)/g)].map(m => m[1]).filter((v, i, a) => a.indexOf(v) === i);
+    if (paren.length >= 2) { out.origem = paren[0]; out.destino = paren[1]; }
+    else {
+      const pair = text.match(/\b([A-Z]{3})\s*(?:→|->|–|—|-|>|✈|to|para|a)\s*([A-Z]{3})\b/);
+      if (pair) { out.origem = pair[1]; out.destino = pair[2]; }
+    }
+    const dep = dateAfterLabel(text, [/\bpartida\b/, /\bdeparture\b/, /\bdeparts?\b/, /\bsa[íi]da\b/, /\bsalida\b/, /\bdecolagem\b/], /\bchegada\b|\barrival\b|\barrives?\b|\bllegada\b/i);
+    const arr = dateAfterLabel(text, [/\bchegada\b/, /\barrival\b/, /\barrives?\b/, /\bllegada\b/]);
+    if (dep) { out.origemData = dep.date; if (dep.time) out.origemHora = dep.time; }
+    if (arr && (!dep || arr.date >= dep.date)) { out.destinoData = arr.date; if (arr.time) out.destinoHora = arr.time; }
+    if (!out.origemData) {
+      const d = findDates(text)[0];
+      if (d) out.origemData = d.iso;
+    }
+    // Horário logo após o rótulo, sem data ao lado ("Saída 14:00 Chegada 16:55").
+    const timeAfter = (re) => { const m = text.match(re); return m ? findTime(text.slice(m.index + m[0].length, m.index + m[0].length + 20)) : ''; };
+    if (!out.origemHora) out.origemHora = timeAfter(/\b(?:partida|departure|departs?|sa[íi]da|salida|decolagem)\b\s*:?/i);
+    if (!out.destinoHora) out.destinoHora = timeAfter(/\b(?:chegada|arrival|arrives?|llegada|pouso)\b\s*:?/i);
+    if (out.destinoHora && !out.destinoData && out.origemData) {
+      // Mesmo dia, ou dia seguinte se a chegada for "antes" da partida.
+      const next = new Date(out.origemData + 'T00:00:00');
+      if (out.origemHora && out.destinoHora < out.origemHora) next.setDate(next.getDate() + 1);
+      out.destinoData = localDateStr(next);
+    }
+    const pnr = text.match(/(?:localizador|c[óo]digo (?:da|de) reserva|booking reference|record locator|confirmation code|\bPNR\b)\s*:?\s*([A-Z0-9]{6})\b/i);
+    if (pnr) out.localizador = pnr[1].toUpperCase();
+    const seat = text.match(/(?:assento|seat|asiento)\s*:?\s*(\d{1,2}[A-K])\b/i);
+    if (seat) out.assento = seat[1].toUpperCase();
+    const filled = ['codigo', 'origem', 'destino', 'origemHora', 'destinoHora', 'localizador'].filter(k => out[k]);
+    return filled.length ? out : null;
+  }
+
+  function parseDocValidityText(text) {
+    if (!text) return '';
+    const d = dateAfterLabel(text, [/data de validade/, /\bvalidade\b/, /v[áa]lid[oa] at[ée]/, /date of expiry/, /expiration date/, /\bexpires?\b/, /\bexpiry\b/, /\bvencimento\b/, /fecha de (?:caducidad|vencimiento)/]);
+    return d ? d.date : '';
+  }
+
+  // Preenche só o que está vazio — nunca apaga o que a pessoa já digitou.
+  // Devolve a lista de campos preenchidos e os que divergem do arquivo.
+  function fillEmptyFields(target, fields, keys) {
+    const filled = [], differs = [];
+    keys.forEach(k => {
+      if (!fields[k]) return;
+      if (!target[k]) { target[k] = fields[k]; filled.push(k); }
+      else if (String(target[k]).trim() !== String(fields[k]).trim()) differs.push(k);
+    });
+    return { filled, differs };
+  }
+
+  // Aviso curto no rodapé da tela (sem bloquear como um alert).
+  function showToast(msg, ms) {
+    let el = document.getElementById('app-toast');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'app-toast';
+      el.setAttribute('role', 'status');
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => el.classList.remove('show'), ms || 4500);
+  }
+
+  async function readAttachmentData(f) {
+    let data = f.data || await idbGet(f.fileKey);
+    if (!data && f.fileKey) {
+      try { data = await fbFileGet(f.fileKey); if (data) { try { await idbSet(f.fileKey, data); } catch (e) {} } } catch (e) {}
+    }
+    return data || null;
+  }
+
   function renderAttachList(id, container, emptyLabel, onChange) {
     const files = state.attachments[id] || [];
     container.innerHTML = '';
@@ -3970,7 +4370,9 @@
     });
   }
 
-  function setupAttachZone(id, zoneEl, buttonLabel, emptyLabel, onChange) {
+  // onFilesAdded (opcional): recebe [{ name, data }] dos arquivos recém
+  // anexados, para a seção tentar ler os dados deles.
+  function setupAttachZone(id, zoneEl, buttonLabel, emptyLabel, onChange, onFilesAdded) {
     zoneEl.innerHTML = '';
     const btn = document.createElement('button');
     btn.className = 'btn primary';
@@ -3986,12 +4388,14 @@
     btn.addEventListener('click', () => input.click());
     input.addEventListener('change', async () => {
       if (!state.attachments[id]) state.attachments[id] = [];
+      const added = [];
       for (const file of input.files) {
         const data = await fileToDataUrl(file);
         const fileKey = uid();
         try {
           await idbSet(fileKey, data);
           state.attachments[id].push({ name: file.name, fileKey });
+          added.push({ name: file.name, data });
           fbFileSet(fileKey, data).catch(() => {});
         } catch (e) {
           alert('Não foi possível salvar o arquivo "' + file.name + '". Tente um arquivo menor.');
@@ -4001,6 +4405,7 @@
       renderAttachList(id, listDiv, emptyLabel, onChange);
       input.value = '';
       if (onChange) onChange();
+      if (onFilesAdded && added.length) onFilesAdded(added);
     });
 
     zoneEl.appendChild(btn);
@@ -4187,7 +4592,7 @@
       });
       setupAttachZone(voo.id, card.querySelector('.attach-zone'), '+ Anexar cartão de embarque', 'Nenhum cartão de embarque anexado ainda.', () => {
         card.querySelector('.voo-quick').innerHTML = vooQuickHtml(voo);
-      });
+      }, (files) => fillVooFromFiles(voo, files));
       voosListEl.appendChild(card);
     });
     updateTripAlerts();
@@ -4440,6 +4845,43 @@
     };
   }
 
+  // Cartão/reserva em imagem ou PDF: o código de barras traz voo, trecho,
+  // data e assento (nunca horários); o texto do PDF costuma trazer os
+  // horários e a chegada. Junta os dois — o código de barras manda no que
+  // ele tem, o texto completa o resto.
+  async function readFlightFromData(data, isPdf) {
+    const imageDataUrl = isPdf ? await renderPdfFirstPageToDataUrl(data) : data;
+    const parsed = imageDataUrl ? await decodeBCBPFromImageDataUrl(imageDataUrl) : null;
+    const fromText = isPdf ? parseFlightText(await extractPdfText(data)) : null;
+    if (!parsed && !fromText) return null;
+    const fields = parsed ? bcbpToVooFields(parsed) : { meta: '' };
+    if (fromText) {
+      ['codigo', 'origem', 'destino', 'origemData', 'origemHora', 'destinoData', 'destinoHora', 'localizador'].forEach(k => {
+        if (!fields[k] && fromText[k]) fields[k] = fromText[k];
+      });
+      if (!parsed) fields.meta = (fromText.assento ? 'Assento ' + fromText.assento + ' · ' : '') + 'lido do PDF anexado';
+    }
+    return fields;
+  }
+
+  // Arquivo anexado dentro de um voo que já existe: completa os campos vazios.
+  async function fillVooFromFiles(voo, files) {
+    for (const f of files) {
+      const isPdf = /^data:application\/pdf/i.test(f.data);
+      if (!isPdf && !/^data:image\//i.test(f.data)) continue;
+      showToast('Lendo "' + f.name + '"…', 15000);
+      const fields = await readFlightFromData(f.data, isPdf);
+      if (!fields) { showToast('Não encontramos dados de voo em "' + f.name + '". O arquivo ficou anexado.'); continue; }
+      const { filled } = fillEmptyFields(voo, fields, ['codigo', 'origem', 'destino', 'origemData', 'origemHora', 'destinoData', 'destinoHora', 'localizador']);
+      if (!voo.meta && fields.meta) voo.meta = fields.meta;
+      saveState();
+      renderVoos();
+      renderDailyBudgets();
+      renderExpenseDayOptions();
+      showToast(filled.length ? 'Preenchemos ' + plural(filled.length, 'campo', 'campos') + ' do voo com o arquivo.' : 'Os dados do arquivo já estavam no voo.');
+    }
+  }
+
   // Ler o código de barras pode levar alguns segundos (mais ainda num PDF, que
   // primeiro precisa ser desenhado como imagem) — sem algum feedback nesse
   // meio tempo a tela fica parada e parece travada. Esse aviso soma ao topo
@@ -4474,9 +4916,7 @@
     if (isPkpass) {
       try { fields = await parsePkpassFile(file); } catch (e) { fields = null; }
     } else {
-      const imageDataUrl = isPdf ? await renderPdfFirstPageToDataUrl(data) : data;
-      const parsed = imageDataUrl ? await decodeBCBPFromImageDataUrl(imageDataUrl) : null;
-      if (parsed) fields = bcbpToVooFields(parsed);
+      fields = await readFlightFromData(data, isPdf);
     }
 
     // Cria o voo (com os dados lidos, ou em branco pra preencher na mão) e
@@ -4536,7 +4976,8 @@
 
   function hotelSummaryHtml(h) {
     if (!h.nome && !h.checkinData && !h.checkoutData && !h.endereco) {
-      return '<p class="hint voo-summary-empty-hint">Preencha os dados abaixo e anexe o voucher da reserva.</p>';
+      return `<p class="hint voo-summary-empty-hint">Anexe o voucher da reserva (PDF) e o app preenche os dados sozinho — ou preencha abaixo.</p>
+        <div class="hotel-quick"><button type="button" class="btn small primary" data-action="attach-voucher">+ Anexar voucher</button></div>`;
     }
     const nights = hotelNights(h);
     const dateCol = (label, d, t) => `<div class="hotel-date"><span class="lbl">${label}</span><span class="val">${d ? fmtDayMonth(d) + (t ? ' · ' + t : '') : '—'}</span></div>`;
@@ -4564,6 +5005,71 @@
   // seção de hospedagens concluídas está aberta.
   const hotelExpandOverride = new Map();
   let hotelDoneExpanded = false;
+
+  const HOTEL_READ_KEYS = ['nome', 'badge', 'checkinData', 'checkinHora', 'checkoutData', 'checkoutHora', 'endereco', 'cancelamento'];
+  const HOTEL_FIELD_NAMES = { nome: 'nome', badge: 'cidade', checkinData: 'data do check-in', checkinHora: 'hora do check-in', checkoutData: 'data do check-out', checkoutHora: 'hora do check-out', endereco: 'endereço', cancelamento: 'cancelamento' };
+
+  // Lê o(s) voucher(s) e preenche os campos vazios do hotel. Com overwrite,
+  // substitui também o que já estava preenchido (botão "Ler dados do voucher").
+  async function fillHotelFromFiles(h, files, opts) {
+    opts = opts || {};
+    let fields = null;
+    for (const f of files) {
+      if (!/^data:application\/pdf/i.test(f.data || '')) continue;
+      if (!opts.silent) showToast('Lendo o voucher…', 15000);
+      fields = parseHotelVoucherText(await extractPdfText(f.data));
+      if (fields) break;
+    }
+    if (!fields) {
+      if (!opts.silent) showToast(files.some(f => /^data:image\//i.test(f.data || ''))
+        ? 'Voucher em foto não pode ser lido automaticamente — anexe o PDF da reserva, ou preencha os campos.'
+        : 'Não encontramos os dados da reserva neste arquivo. Ele ficou anexado; preencha os campos.', 6000);
+      return false;
+    }
+    let filled = [], differs = [];
+    if (opts.overwrite) {
+      HOTEL_READ_KEYS.forEach(k => { if (fields[k] && h[k] !== fields[k]) { h[k] = fields[k]; filled.push(k); } });
+    } else {
+      ({ filled, differs } = fillEmptyFields(h, fields, HOTEL_READ_KEYS));
+    }
+    if (fields.extras && !(h.observacoes || '').includes(fields.extras)) {
+      h.observacoes = (h.observacoes ? h.observacoes + '\n' : '') + fields.extras;
+      filled.push('observacoes');
+    }
+    const nights = hotelNights(h);
+    if (nights != null) h.diarias = String(nights);
+    h.voucherLido = true;
+    if (filled.length) hotelExpandOverride.set(h.id, false);
+    saveState();
+    renderHoteis();
+    renderDashboard();
+    updateTripAlerts();
+    let msg = filled.length ? 'Voucher lido! Preenchemos ' + plural(filled.length, 'campo', 'campos') + ' do hotel.' : 'Os dados do voucher já estavam no hotel.';
+    if (differs.length) msg += ' Atenção: ' + differs.map(k => HOTEL_FIELD_NAMES[k]).join(', ') + ' no voucher ' + (differs.length > 1 ? 'são diferentes' : 'é diferente') + ' do que está no app — confira em "Editar dados do hotel".';
+    if (!opts.silent || filled.length) showToast(msg, differs.length ? 9000 : 4500);
+    return true;
+  }
+
+  // Hotel ainda em branco que já tem voucher anexado (ex: anexado antes da
+  // leitura automática existir): lê uma vez só, sozinho.
+  async function autoReadPendingHotelVouchers() {
+    for (const h of state.hoteis) {
+      if (h.voucherLido || h.nome || h.checkinData) continue;
+      const atts = state.attachments[h.id] || [];
+      if (!atts.length) continue;
+      const files = [];
+      for (const a of atts) { const data = await readAttachmentData(a); if (data) files.push({ name: a.name, data }); }
+      if (files.length) await fillHotelFromFiles(h, files, { silent: true });
+      h.voucherLido = true; // mesmo sem conseguir ler, não tenta de novo a cada tela
+    }
+  }
+  let hotelAutoReadRunning = false;
+  function scheduleHotelAutoRead() {
+    if (hotelAutoReadRunning) return;
+    if (!state.hoteis.some(h => !h.voucherLido && !h.nome && !h.checkinData && (state.attachments[h.id] || []).length)) return;
+    hotelAutoReadRunning = true;
+    setTimeout(() => { autoReadPendingHotelVouchers().finally(() => { hotelAutoReadRunning = false; }); }, 600);
+  }
 
   function buildHotelCard(h, number) {
     const status = hotelStatus(h);
@@ -4633,6 +5139,7 @@
           <textarea data-field="observacoes" placeholder="Ex: PIN da porta, quarto standard, shuttle grátis...">${escapeHtml(h.observacoes)}</textarea>
         </div>
         <div class="attach-zone"></div>
+        ${(state.attachments[h.id] || []).length ? '<button type="button" class="btn small" data-action="reread-voucher" style="margin-top:10px;">Ler dados do voucher de novo</button>' : ''}
       </div>
     `;
     const refreshSummary = () => { card.querySelector('.hotel-summary-wrap').innerHTML = hotelSummaryHtml(h); };
@@ -4669,6 +5176,11 @@
         if (f) openPdfModal(f, f.name);
       } else if (action === 'attach-voucher') {
         card.querySelector('.attach-zone input[type=file]').click();
+      } else if (action === 'reread-voucher') {
+        if (!(await customConfirm('Ler o voucher de novo e substituir os campos deste hotel pelos dados dele?'))) return;
+        const files = [];
+        for (const a of (state.attachments[h.id] || [])) { const data = await readAttachmentData(a); if (data) files.push({ name: a.name, data }); }
+        fillHotelFromFiles(h, files, { overwrite: true });
       } else if (action === 'del-hotel') {
         if (await customConfirm('Remover este hotel?')) {
           const atts = state.attachments[h.id] || [];
@@ -4681,7 +5193,7 @@
         }
       }
     });
-    setupAttachZone(h.id, card.querySelector('.attach-zone'), '+ Anexar voucher', 'Nenhum voucher anexado ainda.', refreshSummary);
+    setupAttachZone(h.id, card.querySelector('.attach-zone'), '+ Anexar voucher', 'Nenhum voucher anexado ainda.', refreshSummary, (files) => fillHotelFromFiles(h, files));
     return card;
   }
 
@@ -4693,6 +5205,7 @@
     const active = ordered.filter(h => hotelStatus(h) !== 'done');
     const done = ordered.filter(h => hotelStatus(h) === 'done');
     active.forEach((h, i) => hoteisListEl.appendChild(buildHotelCard(h, i + 1)));
+    scheduleHotelAutoRead();
     if (!done.length) return;
     const toggle = document.createElement('button');
     toggle.type = 'button';
@@ -5034,6 +5547,7 @@
     if (!target) { docUploadInput.value = ''; return; }
     const key = docKey(target.name);
     if (!state.attachments[key]) state.attachments[key] = [];
+    let validadeLida = '';
     for (const file of docUploadInput.files) {
       const data = await fileToDataUrl(file);
       const fileKey = uid();
@@ -5044,6 +5558,14 @@
       } catch (e) {
         alert('Não foi possível salvar o arquivo "' + file.name + '". Tente um arquivo menor.');
       }
+      if (!validadeLida) validadeLida = parseDocValidityText(await extractPdfText(data));
+    }
+    // Validade lida do PDF (ex: apólice do seguro, ESTA aprovado): só
+    // preenche se o campo estiver vazio.
+    const docItem = travelerDocItems(target.name).find(it => it.id === target.itemId);
+    if (validadeLida && docItem && !docItem.validade) {
+      docItem.validade = validadeLida;
+      showToast('Validade lida do arquivo: ' + fmtShortDate(validadeLida) + ' ' + validadeLida.slice(0, 4) + '.');
     }
     saveState();
     renderDocs();
@@ -5396,6 +5918,7 @@
     renderTravelerChips();
     renderChecklist();
     renderExpenseTravelerOptions();
+    renderShopping();
     renderDocs();
     renderDashboard();
   }
@@ -5541,6 +6064,7 @@
     state.budgetTotal = budgetTotalInput.value === '' ? null : parseFloat(budgetTotalInput.value);
     saveState();
     renderBudgetSummary();
+    renderShopping();
   });
 
   budgetCurrencySelect.addEventListener('change', () => {
@@ -5552,6 +6076,7 @@
     renderBudgetSummary();
     renderExpenses();
     renderDailyBudgets();
+    renderShopping();
   });
 
   // ---------- Conversor de moeda (cotação automática) ----------
@@ -5987,7 +6512,13 @@
     if (!exp) return;
     if (!(await customConfirm('Apagar o gasto "' + (exp.desc || exp.category) + '" de ' + fmtMoney(exp.amount, exp.currency || state.budgetCurrency) + '?'))) return;
     state.expenses.splice(idx, 1);
+    // Gasto que veio da lista de compras: o item volta a "não comprado".
+    if (exp.shopItem) {
+      const item = state.shopping.items.find(it => it.id === exp.shopItem);
+      if (item) item.comprado = false;
+    }
     saveState();
+    renderShopping();
     renderExpenses();
     renderBudgetSummary();
     renderDailyBudgets();
@@ -6012,11 +6543,211 @@
     renderDashboard();
   });
 
+  // ---------- Lista de compras (aba Gastos) ----------
+  // Cada item tem viajante e valor. Marcar "comprado" lança um gasto na
+  // categoria Compras (ligado ao item por shopItem), então ele abate do
+  // orçamento geral e do teto do dia como qualquer gasto. O limite de cada
+  // viajante é uma fatia do orçamento geral, não um dinheiro a mais.
+  // var (e não let/const): renderShopping pode ser chamada pela sincronização
+  // antes desta parte do script rodar.
+  var shopExpanded = true;
+  var shopNeedValue = null; // id do item marcado sem valor (pede o valor)
+
+  function shopTotals(traveler) {
+    const cur = state.budgetCurrency;
+    const items = state.shopping.items.filter(it => it.traveler === traveler && (it.currency || cur) === cur);
+    const bought = items.filter(it => it.comprado).reduce((sum, it) => sum + (parseFloat(it.valor) || 0), 0);
+    const planned = items.filter(it => !it.comprado).reduce((sum, it) => sum + (parseFloat(it.valor) || 0), 0);
+    return { bought, planned, limit: parseFloat(state.shopping.limits[traveler]) || 0 };
+  }
+
+  function shopExpenseFor(item) { return state.expenses.find(e => e.shopItem === item.id); }
+
+  // Mantém o gasto ligado ao item em dia com ele (cria, atualiza ou apaga).
+  function syncShopExpense(item) {
+    const exp = shopExpenseFor(item);
+    const amount = parseFloat(item.valor) || 0;
+    if (item.comprado && amount > 0) {
+      if (exp) {
+        exp.amount = amount; exp.desc = item.nome; exp.traveler = item.traveler; exp.currency = item.currency || state.budgetCurrency;
+      } else {
+        const today = localDateStr();
+        const tripDays = getTripDays();
+        state.expenses.push({ traveler: item.traveler, category: 'Compras', amount, currency: item.currency || state.budgetCurrency, desc: item.nome, date: new Date().toISOString(), tripDate: tripDays.length && !tripDays.includes(today) ? (today < tripDays[0] ? tripDays[0] : tripDays[tripDays.length - 1]) : today, shopItem: item.id });
+      }
+    } else if (exp) {
+      state.expenses.splice(state.expenses.indexOf(exp), 1);
+    }
+  }
+
+  function afterShopChange() {
+    saveState();
+    renderShopping();
+    renderExpenses();
+    renderBudgetSummary();
+    renderDailyBudgets();
+    renderDashboard();
+  }
+
+  function renderShopping() {
+    const card = document.getElementById('shop-card');
+    if (!card) return;
+    const cur = state.budgetCurrency;
+    const travelers = state.travelers.slice();
+    state.shopping.items.forEach(it => { if (!travelers.includes(it.traveler)) travelers.push(it.traveler); });
+
+    const sel = document.getElementById('shop-item-traveler');
+    const prev = sel.value;
+    sel.innerHTML = state.travelers.map(t => `<option value="${escapeAttr(t)}">${escapeHtml(t)}</option>`).join('');
+    if (state.travelers.includes(prev)) sel.value = prev;
+    sel.style.display = state.travelers.length > 1 ? '' : 'none';
+    sel.parentNode.classList.toggle('single', state.travelers.length <= 1);
+
+    document.getElementById('shop-body').classList.toggle('expanded', shopExpanded);
+    document.getElementById('shop-chevron').classList.toggle('expanded', shopExpanded);
+
+    // Resumo no cabeçalho: total comprado / soma dos limites.
+    let boughtAll = 0, limitAll = 0;
+    travelers.forEach(t => { const tt = shopTotals(t); boughtAll += tt.bought; limitAll += tt.limit; });
+    document.getElementById('shop-summary').textContent = state.shopping.items.length || limitAll
+      ? fmtMoneyShort(boughtAll, cur) + (limitAll ? ' / ' + fmtMoneyShort(limitAll, cur) : '')
+      : '';
+
+    const warnEl = document.getElementById('shop-limits-warn');
+    if (state.budgetTotal != null && limitAll > state.budgetTotal) {
+      warnEl.textContent = 'A soma dos limites de compras (' + fmtMoney(limitAll, cur) + ') passa do orçamento geral da viagem (' + fmtMoney(state.budgetTotal, cur) + ').';
+      warnEl.style.display = '';
+    } else {
+      warnEl.style.display = 'none';
+    }
+
+    document.getElementById('shop-groups').innerHTML = travelers.map(t => {
+      const tt = shopTotals(t);
+      const items = state.shopping.items.filter(it => it.traveler === t)
+        .sort((a, b) => (a.comprado === b.comprado ? 0 : a.comprado ? 1 : -1));
+      const saldo = tt.limit - tt.bought;
+      const over = tt.limit > 0 && tt.bought + tt.planned > tt.limit;
+      const pctBought = tt.limit > 0 ? Math.min(100, tt.bought / tt.limit * 100) : 0;
+      const pctPlanned = tt.limit > 0 ? Math.min(100 - pctBought, tt.planned / tt.limit * 100) : 0;
+      const fillColor = tt.limit > 0 && tt.bought > tt.limit ? 'var(--danger)' : 'var(--accent)';
+      return `
+        <div class="shop-group" data-traveler="${escapeAttr(t)}">
+          <div class="shop-group-head">
+            <span class="shop-group-name">${escapeHtml(t)}</span>
+            <label class="shop-limit">Limite <input type="number" step="0.01" min="0" inputmode="decimal" class="shop-limit-input" placeholder="${escapeAttr(cur)}" value="${tt.limit > 0 ? tt.limit : ''}" aria-label="Limite de compras de ${escapeAttr(t)}"></label>
+          </div>
+          <div class="shop-stats">
+            <span>Comprado <b>${fmtMoney(tt.bought, cur)}</b></span>
+            ${tt.planned > 0 ? `<span class="${over ? 'neg' : ''}">Previsto <b>${fmtMoney(tt.planned, cur)}</b></span>` : ''}
+            ${tt.limit > 0 ? `<span class="${saldo < 0 ? 'neg' : ''}">Saldo <b>${fmtMoney(saldo, cur)}</b></span>` : ''}
+          </div>
+          ${tt.limit > 0 ? `<div class="progress-bar"><div class="planned" style="left:${pctBought}%;width:${pctPlanned}%"></div><div class="fill" style="width:${pctBought}%;background:${fillColor}"></div></div>` : ''}
+          ${over ? `<p class="hint shop-warn" style="margin:6px 0 0;">A lista passa do limite em ${fmtMoney(tt.bought + tt.planned - tt.limit, cur)}.</p>` : ''}
+          <div class="shop-items">
+            ${items.length ? items.map(it => `
+              <div class="shop-item${it.comprado ? ' done' : ''}" data-shop-id="${escapeAttr(it.id)}">
+                <input type="checkbox" class="shop-check" ${it.comprado ? 'checked' : ''} aria-label="Comprado">
+                <span class="nm">${escapeHtml(it.nome)}</span>
+                <input type="number" step="0.01" min="0" inputmode="decimal" class="val${shopNeedValue === it.id ? ' need' : ''}" placeholder="${escapeAttr(cur)}" value="${it.valor !== '' && it.valor != null ? escapeAttr(String(it.valor)) : ''}" aria-label="Valor de ${escapeAttr(it.nome)}">
+                <button type="button" class="del" aria-label="Remover item">✕</button>
+              </div>`).join('') : '<p class="shop-empty">Nenhum item ainda.</p>'}
+          </div>
+        </div>`;
+    }).join('');
+
+    if (shopNeedValue) {
+      const need = document.querySelector('.shop-item[data-shop-id="' + CSS.escape(shopNeedValue) + '"] .val');
+      if (need) need.focus();
+    }
+  }
+
+  document.getElementById('shop-toggle').addEventListener('click', () => {
+    shopExpanded = !shopExpanded;
+    renderShopping();
+  });
+
+  document.getElementById('shop-add-btn').addEventListener('click', () => {
+    const nameEl = document.getElementById('shop-item-name');
+    const valEl = document.getElementById('shop-item-value');
+    const nome = nameEl.value.trim();
+    if (!nome) { nameEl.focus(); return; }
+    const traveler = state.travelers.length > 1 ? document.getElementById('shop-item-traveler').value : state.travelers[0];
+    const v = parseFloat(valEl.value);
+    state.shopping.items.push({ id: 'shop_' + uid(), nome, traveler, valor: v > 0 ? v : '', currency: state.budgetCurrency, comprado: false });
+    nameEl.value = '';
+    valEl.value = '';
+    saveState();
+    renderShopping();
+    nameEl.focus();
+  });
+  document.getElementById('shop-item-name').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); document.getElementById('shop-add-btn').click(); }
+  });
+
+  document.getElementById('shop-groups').addEventListener('change', (e) => {
+    const group = e.target.closest('.shop-group');
+    if (e.target.classList.contains('shop-limit-input') && group) {
+      const v = parseFloat(e.target.value);
+      if (v > 0) state.shopping.limits[group.dataset.traveler] = v;
+      else delete state.shopping.limits[group.dataset.traveler];
+      saveState();
+      renderShopping();
+      return;
+    }
+    const row = e.target.closest('.shop-item');
+    if (!row) return;
+    const item = state.shopping.items.find(it => it.id === row.dataset.shopId);
+    if (!item) return;
+    if (e.target.classList.contains('shop-check')) {
+      if (e.target.checked && !(parseFloat(item.valor) > 0)) {
+        // Sem valor não há o que abater: pede o valor pago primeiro.
+        e.target.checked = false;
+        shopNeedValue = item.id;
+        renderShopping();
+        showToast('Digite quanto custou "' + item.nome + '" e marque de novo.');
+        return;
+      }
+      item.comprado = e.target.checked;
+      shopNeedValue = null;
+      syncShopExpense(item);
+      afterShopChange();
+      if (item.comprado) showToast('"' + item.nome + '" lançado nos gastos: ' + fmtMoney(item.valor, item.currency || state.budgetCurrency) + '.');
+    } else if (e.target.classList.contains('val')) {
+      const v = parseFloat(e.target.value);
+      item.valor = v > 0 ? v : '';
+      if (item.comprado && !(v > 0)) item.comprado = false;
+      syncShopExpense(item);
+      if (shopNeedValue === item.id && v > 0) {
+        // Veio do "marque de novo": já marca como comprado.
+        shopNeedValue = null;
+        item.comprado = true;
+        syncShopExpense(item);
+        showToast('"' + item.nome + '" lançado nos gastos: ' + fmtMoney(item.valor, item.currency || state.budgetCurrency) + '.');
+      }
+      afterShopChange();
+    }
+  });
+
+  document.getElementById('shop-groups').addEventListener('click', async (e) => {
+    const del = e.target.closest('.shop-item .del');
+    if (!del) return;
+    const item = state.shopping.items.find(it => it.id === del.closest('.shop-item').dataset.shopId);
+    if (!item) return;
+    const msg = item.comprado ? 'Remover "' + item.nome + '" da lista? O gasto lançado por ele também será apagado.' : 'Remover "' + item.nome + '" da lista?';
+    if (!(await customConfirm(msg))) return;
+    item.comprado = false;
+    syncShopExpense(item);
+    state.shopping.items.splice(state.shopping.items.indexOf(item), 1);
+    if (shopNeedValue === item.id) shopNeedValue = null;
+    afterShopChange();
+  });
+
   renderExpenseTravelerOptions();
   renderExpenseDayOptions();
   renderExpenses();
   renderDailyBudgets();
   renderBudgetSummary();
+  renderShopping();
 
   initFirebaseSync();
 
