@@ -5020,6 +5020,11 @@
       fields = parseHotelVoucherText(await extractPdfText(f.data));
       if (fields) break;
     }
+    // Durante a leitura (assíncrona) a nuvem pode ter trocado o estado
+    // inteiro: grava no hotel do estado atual, não numa cópia antiga.
+    const current = state.hoteis.find(x => x.id === h.id);
+    if (!current) return false;
+    h = current;
     if (!fields) {
       if (!opts.silent) showToast(files.some(f => /^data:image\//i.test(f.data || ''))
         ? 'Voucher em foto não pode ser lido automaticamente — anexe o PDF da reserva, ou preencha os campos.'
@@ -5059,8 +5064,10 @@
       if (!atts.length) continue;
       const files = [];
       for (const a of atts) { const data = await readAttachmentData(a); if (data) files.push({ name: a.name, data }); }
-      if (files.length) await fillHotelFromFiles(h, files, { silent: true });
-      h.voucherLido = true; // mesmo sem conseguir ler, não tenta de novo a cada tela
+      const ok = files.length ? await fillHotelFromFiles(h, files, { silent: true }) : false;
+      // Mesmo sem conseguir ler, não tenta de novo a cada tela.
+      const current = state.hoteis.find(x => x.id === h.id);
+      if (current && !ok) { current.voucherLido = true; saveState(); }
     }
   }
   let hotelAutoReadRunning = false;
@@ -5068,7 +5075,13 @@
     if (hotelAutoReadRunning) return;
     if (!state.hoteis.some(h => !h.voucherLido && !h.nome && !h.checkinData && (state.attachments[h.id] || []).length)) return;
     hotelAutoReadRunning = true;
-    setTimeout(() => { autoReadPendingHotelVouchers().finally(() => { hotelAutoReadRunning = false; }); }, 600);
+    setTimeout(() => {
+      autoReadPendingHotelVouchers().finally(() => {
+        hotelAutoReadRunning = false;
+        // Se a nuvem trocou o estado no meio da leitura, ainda há pendência.
+        scheduleHotelAutoRead();
+      });
+    }, 600);
   }
 
   function buildHotelCard(h, number) {
