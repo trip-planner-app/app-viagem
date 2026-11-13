@@ -1305,6 +1305,10 @@
   .plan-row-head input.plan-input { width: 110px; flex: none; margin: 0; padding: 6px 8px; text-align: right; font-weight: 700; }
   /* Nome editável: parece texto, mas tem um sublinhado pontilhado e vira campo ao tocar. */
   .plan-row-head input.plan-name { flex: 1; min-width: 0; width: auto; margin: 0; padding: 4px 6px; text-align: left; font-weight: 700; color: var(--text); font-size: var(--fs-md); background: transparent; border: 1px solid transparent; border-bottom: 1px dashed var(--border); border-radius: var(--radius-sm); }
+  .plan-del { flex: none; background: none; border: none; color: var(--muted); font-size: var(--fs-md); padding: 4px 2px; cursor: pointer; line-height: 1; }
+  .plan-add { margin-top: 14px; }
+  .plan-add input { margin: 0; text-align: left; }
+  .plan-add .btn { flex: none; }
   .plan-row-head input.plan-name:focus { background: var(--card2); border: 1px solid var(--accent2); outline: none; }
   .plan-row .breakdown-bar { margin-top: 8px; }
   .plan-row .breakdown-bar .fill.good { background: var(--good); }
@@ -1848,7 +1852,11 @@
       <div class="shop-body" id="plan-body">
         <div class="plan-status" id="plan-status"></div>
         <div id="plan-rows"></div>
-        <p class="hint" style="margin:12px 0 0;">Toque no nome de uma categoria para renomeá-la (os gastos já lançados acompanham). Distribua o orçamento da viagem entre as categorias. A soma deve dar o valor do orçamento; cada categoria fica verde enquanto o gasto está dentro do previsto e vermelha se passar.</p>
+        <div class="add-row plan-add">
+          <input type="text" id="plan-new-cat" placeholder="Nova categoria — ex: Ingressos" maxlength="30" enterkeyhint="done" autocomplete="off">
+          <button type="button" class="btn primary" id="plan-add-cat">+ Adicionar</button>
+        </div>
+        <p class="hint" style="margin:12px 0 0;">Toque no nome de uma categoria para renomeá-la (os gastos já lançados acompanham) ou crie uma nova abaixo da lista. Distribua o orçamento da viagem entre as categorias. A soma deve dar o valor do orçamento; cada categoria fica verde enquanto o gasto está dentro do previsto e vermelha se passar.</p>
       </div>
     </div>
 
@@ -2206,6 +2214,7 @@
     expenses: [], // { traveler, category, amount, desc, date, tripDate }
     dailyBudgets: {}, // { 'YYYY-MM-DD': tetoNaBudgetCurrency }
     expenseCategoryNames: {}, // { idDaCategoria: nome personalizado }
+    customCategories: [], // [{ id, nome }] criadas pelo usuário
     budgetPlan: {}, // { categoria: valor previsto na moeda do orçamento }
     shopping: { items: [], limits: {} } // items: { id, nome, traveler, valor, currency, comprado }; limits: { viajante: teto }
   };
@@ -2232,6 +2241,7 @@
     expenses: [],
     dailyBudgets: {},
     expenseCategoryNames: {},
+    customCategories: [],
     budgetPlan: {},
     shopping: { items: [], limits: {} }
   };
@@ -2262,6 +2272,7 @@
     s.dailyBudgets = s.dailyBudgets && typeof s.dailyBudgets === 'object' ? s.dailyBudgets : {};
     s.budgetPlan = s.budgetPlan && typeof s.budgetPlan === 'object' ? s.budgetPlan : {};
     s.expenseCategoryNames = s.expenseCategoryNames && typeof s.expenseCategoryNames === 'object' ? s.expenseCategoryNames : {};
+    s.customCategories = Array.isArray(s.customCategories) ? s.customCategories.filter(c => c && c.id && c.nome) : [];
     s.shopping = s.shopping && typeof s.shopping === 'object' ? s.shopping : {};
     s.shopping.items = Array.isArray(s.shopping.items) ? s.shopping.items : [];
     s.shopping.limits = s.shopping.limits && typeof s.shopping.limits === 'object' ? s.shopping.limits : {};
@@ -6218,9 +6229,43 @@
     ['Alimentação', '🍽️', 'alimentacao'], ['Transporte', '🚕', 'transporte'], ['Compras', '🛍️', 'compras'], ['Lazer', '🎢', 'lazer'],
     ['Crianças', '🧸', 'criancas'], ['Presentes', '🎁', 'presentes'], ['Outros', '📦', 'outros']
   ];
+  // Categorias criadas pelo usuário ficam em state.customCategories
+  // [{ id, nome }], depois das padrão; só elas podem ser removidas.
   function getExpenseCategories() {
     const names = state.expenseCategoryNames || {};
-    return DEFAULT_EXPENSE_CATEGORIES.map(([name, ico, id]) => [names[id] || name, ico, id]);
+    return DEFAULT_EXPENSE_CATEGORIES.map(([name, ico, id]) => [names[id] || name, ico, id])
+      .concat((state.customCategories || []).map(c => [c.nome, '🏷️', c.id, true]));
+  }
+  function addExpenseCategory(rawName) {
+    const name = (rawName || '').replace(/\s+/g, ' ').trim().slice(0, 30);
+    if (!name) return false;
+    if (getExpenseCategories().some(c => c[0].toLowerCase() === name.toLowerCase())) {
+      showToast('Já existe uma categoria "' + name + '".');
+      return false;
+    }
+    state.customCategories.push({ id: 'cat_' + uid(), nome: name });
+    saveState();
+    renderExpenseCategoryOptions();
+    renderBudgetSummary();
+    return true;
+  }
+  // Remove uma categoria criada pelo usuário: gastos dela passam para a
+  // categoria "Outros" (pelo nome atual), e o valor previsto sai da previsão.
+  async function removeExpenseCategory(id) {
+    const cat = state.customCategories.find(c => c.id === id);
+    if (!cat) return;
+    const used = state.expenses.filter(e => e.category === cat.nome).length;
+    const outros = expenseCategoryName('outros');
+    if (!(await customConfirm('Remover a categoria "' + cat.nome + '"?' + (used ? ' ' + plural(used, 'gasto lançado nela vai', 'gastos lançados nela vão') + ' para "' + outros + '".' : '')))) return;
+    state.expenses.forEach(e => { if (e.category === cat.nome) e.category = outros; });
+    delete state.budgetPlan[cat.nome];
+    state.customCategories.splice(state.customCategories.indexOf(cat), 1);
+    saveState();
+    renderExpenseCategoryOptions();
+    renderExpenses();
+    renderBudgetSummary();
+    renderDailyBudgets();
+    renderDashboard();
   }
   function expenseCategoryName(id) {
     const found = getExpenseCategories().find(c => c[2] === id);
@@ -6241,7 +6286,8 @@
     const cat = cats.find(c => c[2] === id);
     if (!cat) return;
     const oldName = cat[0];
-    const defName = DEFAULT_EXPENSE_CATEGORIES.find(c => c[2] === id)[0];
+    const custom = state.customCategories.find(c => c.id === id);
+    const defName = custom ? oldName : DEFAULT_EXPENSE_CATEGORIES.find(c => c[2] === id)[0];
     const newName = (rawName || '').replace(/\s+/g, ' ').trim().slice(0, 30) || defName;
     if (newName === oldName) { renderBudgetPlan(); return; }
     if (cats.some(c => c[2] !== id && c[0].toLowerCase() === newName.toLowerCase())) {
@@ -6249,7 +6295,8 @@
       renderBudgetPlan();
       return;
     }
-    if (newName === defName) delete state.expenseCategoryNames[id];
+    if (custom) custom.nome = newName;
+    else if (newName === defName) delete state.expenseCategoryNames[id];
     else state.expenseCategoryNames[id] = newName;
     state.expenses.forEach(e => { if (e.category === oldName) e.category = newName; });
     if (state.budgetPlan[oldName] != null) {
@@ -6808,7 +6855,7 @@
     const active = document.activeElement;
     const editingCat = active && active.classList && active.classList.contains('plan-input') ? active.dataset.cat : null;
     const rowsEl = document.getElementById('plan-rows');
-    const rowHtml = ([c, ico, id]) => {
+    const rowHtml = ([c, ico, id, isCustom]) => {
       const planned = parseFloat(plan[c]) || 0;
       const spent = spentByCat[c] || 0;
       const over = planned > 0 ? spent > planned : spent > 0;
@@ -6817,7 +6864,7 @@
         ? `<div class="breakdown-bar"><div class="fill ${over ? 'over' : 'good'}" style="width:${pct}%"></div></div>
            <div class="plan-row-foot"><span>Gasto ${escapeHtml(fmtMoney(spent, cur))}</span><span class="${over ? 'over' : 'good'}">${planned > 0 ? (over ? 'Passou ' + escapeHtml(fmtMoney(spent - planned, cur)) : 'Resta ' + escapeHtml(fmtMoney(planned - spent, cur))) : 'Sem previsão'}</span></div>`
         : '';
-      return { head: `<div class="plan-row-head"><span class="ico">${ico}</span><input type="text" class="plan-name" data-id="${escapeAttr(id)}" value="${escapeAttr(c)}" maxlength="30" enterkeyhint="done" aria-label="Nome da categoria ${escapeAttr(c)}"><input type="number" step="0.01" min="0" inputmode="decimal" class="plan-input" data-cat="${escapeAttr(c)}" placeholder="${escapeAttr(cur)}" value="${planned > 0 ? planned : ''}" aria-label="Previsto para ${escapeAttr(c)}"></div>`, foot };
+      return { head: `<div class="plan-row-head"><span class="ico">${ico}</span><input type="text" class="plan-name" data-id="${escapeAttr(id)}" value="${escapeAttr(c)}" maxlength="30" enterkeyhint="done" aria-label="Nome da categoria ${escapeAttr(c)}"><input type="number" step="0.01" min="0" inputmode="decimal" class="plan-input" data-cat="${escapeAttr(c)}" placeholder="${escapeAttr(cur)}" value="${planned > 0 ? planned : ''}" aria-label="Previsto para ${escapeAttr(c)}">${isCustom ? `<button type="button" class="plan-del" data-del-cat="${escapeAttr(id)}" aria-label="Remover categoria ${escapeAttr(c)}">✕</button>` : (state.customCategories.length ? '<span class="plan-del" style="visibility:hidden" aria-hidden="true">✕</span>' : '')}</div>`, foot };
     };
     if (editingCat && rowsEl.children.length === cats.length) {
       cats.forEach((cat, i) => {
@@ -6834,6 +6881,23 @@
   document.getElementById('plan-toggle').addEventListener('click', () => {
     planExpanded = !planExpanded;
     renderBudgetPlan();
+  });
+  document.getElementById('plan-add-cat').addEventListener('click', () => {
+    const el = document.getElementById('plan-new-cat');
+    if (!el.value.trim()) { el.focus(); return; }
+    if (addExpenseCategory(el.value)) {
+      el.value = '';
+      // Já foca o valor previsto da categoria nova.
+      const inputs = document.querySelectorAll('#plan-rows .plan-input');
+      if (inputs.length) inputs[inputs.length - 1].focus();
+    }
+  });
+  document.getElementById('plan-new-cat').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); document.getElementById('plan-add-cat').click(); }
+  });
+  document.getElementById('plan-rows').addEventListener('click', (e) => {
+    const del = e.target.closest('[data-del-cat]');
+    if (del) removeExpenseCategory(del.dataset.delCat);
   });
   // Renomear: grava só ao sair do campo (ou Enter), não a cada letra.
   document.getElementById('plan-rows').addEventListener('change', (e) => {
