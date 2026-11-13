@@ -1302,7 +1302,10 @@
   .plan-row-head { display: flex; align-items: center; gap: 10px; }
   .plan-row-head .ico { flex: none; width: 32px; height: 32px; border-radius: 50%; background: var(--chip-bg); display: flex; align-items: center; justify-content: center; font-size: 16px; }
   .plan-row-head .nm { flex: 1; min-width: 0; font-weight: 700; color: var(--text); font-size: var(--fs-md); }
-  .plan-row-head input { width: 110px; flex: none; margin: 0; padding: 6px 8px; text-align: right; font-weight: 700; }
+  .plan-row-head input.plan-input { width: 110px; flex: none; margin: 0; padding: 6px 8px; text-align: right; font-weight: 700; }
+  /* Nome editável: parece texto, mas tem um sublinhado pontilhado e vira campo ao tocar. */
+  .plan-row-head input.plan-name { flex: 1; min-width: 0; width: auto; margin: 0; padding: 4px 6px; text-align: left; font-weight: 700; color: var(--text); font-size: var(--fs-md); background: transparent; border: 1px solid transparent; border-bottom: 1px dashed var(--border); border-radius: var(--radius-sm); }
+  .plan-row-head input.plan-name:focus { background: var(--card2); border: 1px solid var(--accent2); outline: none; }
   .plan-row .breakdown-bar { margin-top: 8px; }
   .plan-row .breakdown-bar .fill.good { background: var(--good); }
   .plan-row .breakdown-bar .fill.over { background: var(--danger); }
@@ -1845,7 +1848,7 @@
       <div class="shop-body" id="plan-body">
         <div class="plan-status" id="plan-status"></div>
         <div id="plan-rows"></div>
-        <p class="hint" style="margin:12px 0 0;">Distribua o orçamento da viagem entre as categorias. A soma deve dar o valor do orçamento; cada categoria fica verde enquanto o gasto está dentro do previsto e vermelha se passar.</p>
+        <p class="hint" style="margin:12px 0 0;">Toque no nome de uma categoria para renomeá-la (os gastos já lançados acompanham). Distribua o orçamento da viagem entre as categorias. A soma deve dar o valor do orçamento; cada categoria fica verde enquanto o gasto está dentro do previsto e vermelha se passar.</p>
       </div>
     </div>
 
@@ -2202,6 +2205,7 @@
     fxForeignCurrency: 'USD',
     expenses: [], // { traveler, category, amount, desc, date, tripDate }
     dailyBudgets: {}, // { 'YYYY-MM-DD': tetoNaBudgetCurrency }
+    expenseCategoryNames: {}, // { idDaCategoria: nome personalizado }
     budgetPlan: {}, // { categoria: valor previsto na moeda do orçamento }
     shopping: { items: [], limits: {} } // items: { id, nome, traveler, valor, currency, comprado }; limits: { viajante: teto }
   };
@@ -2227,6 +2231,7 @@
     fxForeignCurrency: 'USD',
     expenses: [],
     dailyBudgets: {},
+    expenseCategoryNames: {},
     budgetPlan: {},
     shopping: { items: [], limits: {} }
   };
@@ -2256,6 +2261,7 @@
     s.expenses.forEach(e => { if (!e.currency) e.currency = s.budgetCurrency; });
     s.dailyBudgets = s.dailyBudgets && typeof s.dailyBudgets === 'object' ? s.dailyBudgets : {};
     s.budgetPlan = s.budgetPlan && typeof s.budgetPlan === 'object' ? s.budgetPlan : {};
+    s.expenseCategoryNames = s.expenseCategoryNames && typeof s.expenseCategoryNames === 'object' ? s.expenseCategoryNames : {};
     s.shopping = s.shopping && typeof s.shopping === 'object' ? s.shopping : {};
     s.shopping.items = Array.isArray(s.shopping.items) ? s.shopping.items : [];
     s.shopping.limits = s.shopping.limits && typeof s.shopping.limits === 'object' ? s.shopping.limits : {};
@@ -2423,6 +2429,7 @@
     renderTravelerChips();
     renderChecklist();
     renderExpenseTravelerOptions();
+    renderExpenseCategoryOptions();
     if (state.budgetTotal != null) budgetTotalInput.value = state.budgetTotal;
     budgetCurrencySelect.value = state.budgetCurrency;
     fxCurrencySelect.value = state.fxForeignCurrency;
@@ -6202,15 +6209,61 @@
   // Lançamento rápido: valor + categoria em um toque. A moeda vem de
   // Configurações; outra moeda só aparece se o usuário tocar no código.
   // O nome gravado no gasto é só o texto (sem o ícone), como sempre foi.
-  const EXPENSE_CATEGORIES = [
-    ['Alimentação', '🍽️'], ['Transporte', '🚕'], ['Compras', '🛍️'], ['Lazer', '🎢'],
-    ['Crianças', '🧸'], ['Presentes', '🎁'], ['Outros', '📦']
+  // Categorias com id fixo; o nome pode ser trocado por viagem (renomear na
+  // Previsão de gastos) e fica em state.expenseCategoryNames { id: nome }.
+  // Cada gasto continua guardando o nome (como sempre foi), por isso
+  // renomear atualiza os gastos já lançados.
+  // var: getExpenseCategories pode rodar antes desta linha (sincronização).
+  var DEFAULT_EXPENSE_CATEGORIES = [
+    ['Alimentação', '🍽️', 'alimentacao'], ['Transporte', '🚕', 'transporte'], ['Compras', '🛍️', 'compras'], ['Lazer', '🎢', 'lazer'],
+    ['Crianças', '🧸', 'criancas'], ['Presentes', '🎁', 'presentes'], ['Outros', '📦', 'outros']
   ];
+  function getExpenseCategories() {
+    const names = state.expenseCategoryNames || {};
+    return DEFAULT_EXPENSE_CATEGORIES.map(([name, ico, id]) => [names[id] || name, ico, id]);
+  }
+  function expenseCategoryName(id) {
+    const found = getExpenseCategories().find(c => c[2] === id);
+    return found ? found[0] : id;
+  }
   function expenseCategoryIcon(name) {
-    const found = EXPENSE_CATEGORIES.find(([c]) => c === name);
+    const found = getExpenseCategories().find(([c]) => c === name) || DEFAULT_EXPENSE_CATEGORIES.find(([c]) => c === name);
     return found ? found[1] : '💵';
   }
-  expenseCategorySelect.innerHTML = EXPENSE_CATEGORIES.map(([c, ico]) => `<option value="${escapeAttr(c)}">${ico}  ${escapeHtml(c)}</option>`).join('');
+  function renderExpenseCategoryOptions() {
+    const sel = document.getElementById('expense-category');
+    const prevIdx = sel.selectedIndex;
+    sel.innerHTML = getExpenseCategories().map(([c, ico]) => `<option value="${escapeAttr(c)}">${ico}  ${escapeHtml(c)}</option>`).join('');
+    if (prevIdx >= 0 && prevIdx < sel.options.length) sel.selectedIndex = prevIdx;
+  }
+  function renameExpenseCategory(id, rawName) {
+    const cats = getExpenseCategories();
+    const cat = cats.find(c => c[2] === id);
+    if (!cat) return;
+    const oldName = cat[0];
+    const defName = DEFAULT_EXPENSE_CATEGORIES.find(c => c[2] === id)[0];
+    const newName = (rawName || '').replace(/\s+/g, ' ').trim().slice(0, 30) || defName;
+    if (newName === oldName) { renderBudgetPlan(); return; }
+    if (cats.some(c => c[2] !== id && c[0].toLowerCase() === newName.toLowerCase())) {
+      showToast('Já existe uma categoria "' + newName + '".');
+      renderBudgetPlan();
+      return;
+    }
+    if (newName === defName) delete state.expenseCategoryNames[id];
+    else state.expenseCategoryNames[id] = newName;
+    state.expenses.forEach(e => { if (e.category === oldName) e.category = newName; });
+    if (state.budgetPlan[oldName] != null) {
+      state.budgetPlan[newName] = state.budgetPlan[oldName];
+      delete state.budgetPlan[oldName];
+    }
+    saveState();
+    renderExpenseCategoryOptions();
+    renderExpenses();
+    renderBudgetSummary();
+    renderDailyBudgets();
+    renderDashboard();
+  }
+  renderExpenseCategoryOptions();
   expenseCurBtn.addEventListener('click', () => {
     const open = expenseCurrencyFieldEl.style.display === 'none';
     expenseCurrencyFieldEl.style.display = open ? '' : 'none';
@@ -6725,7 +6778,8 @@
       if ((e.currency || cur) !== cur) return;
       spentByCat[e.category] = (spentByCat[e.category] || 0) + (parseFloat(e.amount) || 0);
     });
-    const plannedTotal = EXPENSE_CATEGORIES.reduce((sum, [c]) => sum + (parseFloat(plan[c]) || 0), 0);
+    const cats = getExpenseCategories();
+    const plannedTotal = cats.reduce((sum, [c]) => sum + (parseFloat(plan[c]) || 0), 0);
 
     document.getElementById('plan-body').classList.toggle('expanded', planExpanded);
     document.getElementById('plan-chevron').classList.toggle('expanded', planExpanded);
@@ -6754,7 +6808,7 @@
     const active = document.activeElement;
     const editingCat = active && active.classList && active.classList.contains('plan-input') ? active.dataset.cat : null;
     const rowsEl = document.getElementById('plan-rows');
-    const rowHtml = ([c, ico]) => {
+    const rowHtml = ([c, ico, id]) => {
       const planned = parseFloat(plan[c]) || 0;
       const spent = spentByCat[c] || 0;
       const over = planned > 0 ? spent > planned : spent > 0;
@@ -6763,23 +6817,30 @@
         ? `<div class="breakdown-bar"><div class="fill ${over ? 'over' : 'good'}" style="width:${pct}%"></div></div>
            <div class="plan-row-foot"><span>Gasto ${escapeHtml(fmtMoney(spent, cur))}</span><span class="${over ? 'over' : 'good'}">${planned > 0 ? (over ? 'Passou ' + escapeHtml(fmtMoney(spent - planned, cur)) : 'Resta ' + escapeHtml(fmtMoney(planned - spent, cur))) : 'Sem previsão'}</span></div>`
         : '';
-      return { head: `<div class="plan-row-head"><span class="ico">${ico}</span><span class="nm">${escapeHtml(c)}</span><input type="number" step="0.01" min="0" inputmode="decimal" class="plan-input" data-cat="${escapeAttr(c)}" placeholder="${escapeAttr(cur)}" value="${planned > 0 ? planned : ''}" aria-label="Previsto para ${escapeAttr(c)}"></div>`, foot };
+      return { head: `<div class="plan-row-head"><span class="ico">${ico}</span><input type="text" class="plan-name" data-id="${escapeAttr(id)}" value="${escapeAttr(c)}" maxlength="30" enterkeyhint="done" aria-label="Nome da categoria ${escapeAttr(c)}"><input type="number" step="0.01" min="0" inputmode="decimal" class="plan-input" data-cat="${escapeAttr(c)}" placeholder="${escapeAttr(cur)}" value="${planned > 0 ? planned : ''}" aria-label="Previsto para ${escapeAttr(c)}"></div>`, foot };
     };
-    if (editingCat && rowsEl.children.length === EXPENSE_CATEGORIES.length) {
-      EXPENSE_CATEGORIES.forEach((cat, i) => {
+    if (editingCat && rowsEl.children.length === cats.length) {
+      cats.forEach((cat, i) => {
         const r = rowHtml(cat);
         const rowEl = rowsEl.children[i];
         if (cat[0] !== editingCat) rowEl.innerHTML = r.head + '<div class="plan-foot">' + r.foot + '</div>';
         else rowEl.querySelector('.plan-foot').innerHTML = r.foot;
       });
     } else {
-      rowsEl.innerHTML = EXPENSE_CATEGORIES.map(cat => { const r = rowHtml(cat); return `<div class="plan-row">${r.head}<div class="plan-foot">${r.foot}</div></div>`; }).join('');
+      rowsEl.innerHTML = cats.map(cat => { const r = rowHtml(cat); return `<div class="plan-row">${r.head}<div class="plan-foot">${r.foot}</div></div>`; }).join('');
     }
   }
 
   document.getElementById('plan-toggle').addEventListener('click', () => {
     planExpanded = !planExpanded;
     renderBudgetPlan();
+  });
+  // Renomear: grava só ao sair do campo (ou Enter), não a cada letra.
+  document.getElementById('plan-rows').addEventListener('change', (e) => {
+    if (e.target.classList.contains('plan-name')) renameExpenseCategory(e.target.dataset.id, e.target.value);
+  });
+  document.getElementById('plan-rows').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.target.classList.contains('plan-name')) { e.preventDefault(); e.target.blur(); }
   });
   document.getElementById('plan-rows').addEventListener('input', (e) => {
     if (!e.target.classList.contains('plan-input')) return;
@@ -6820,7 +6881,7 @@
       } else {
         const today = localDateStr();
         const tripDays = getTripDays();
-        state.expenses.push({ traveler: item.traveler, category: 'Compras', amount, currency: item.currency || state.budgetCurrency, desc: item.nome, date: new Date().toISOString(), tripDate: tripDays.length && !tripDays.includes(today) ? (today < tripDays[0] ? tripDays[0] : tripDays[tripDays.length - 1]) : today, shopItem: item.id });
+        state.expenses.push({ traveler: item.traveler, category: expenseCategoryName('compras'), amount, currency: item.currency || state.budgetCurrency, desc: item.nome, date: new Date().toISOString(), tripDate: tripDays.length && !tripDays.includes(today) ? (today < tripDays[0] ? tripDays[0] : tripDays[tripDays.length - 1]) : today, shopItem: item.id });
       }
     } else if (exp) {
       state.expenses.splice(state.expenses.indexOf(exp), 1);
